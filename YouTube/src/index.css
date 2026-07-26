@@ -1,0 +1,277 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
+
+:root {
+  --yt-red: #ff0000;
+  --yt-red-hover: #cc0000;
+  --yt-dark-body: #0f0f0f;
+  --yt-dark-elevated: #1f1f1f;
+  --yt-dark-card: #272727;
+  --yt-dark-hover: rgba(255, 255, 255, 0.1);
+  --yt-border: rgba(255, 255, 255, 0.12);
+  --text-primary: #f1f1f1;
+  --text-secondary: #aaaaaa;
+  --text-muted: #717171;
+  --sidebar-width: 240px;
+  --sidebar-collapsed-width: 72px;
+  --transition-fast: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-smooth: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-theme="light"] {
+  --yt-dark-body: #ffffff;
+  --yt-dark-elevated: #f8f8f8;
+  --yt-dark-card: #e5e5e5;
+  --yt-dark-hover: rgba(0, 0, 0, 0.08);
+  --yt-border: rgba(0, 0, 0, 0.1);
+  --text-primary: #0f0f0f;
+  --text-secondary: #606060;
+  --text-muted: #909090;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--yt-dark-body);
+  color: var(--text-primary);
+  overflow-x: hidden;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+}
+
+/* App Container Layout */
+.yt-app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--yt-dark-body);
+}
+
+.yt-main-wrapper {
+  display: flex;
+  flex: 1;
+  margin-top: 56px;
+}
+
+.yt-main-content {
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  padding: 24px;
+  min-height: calc(100vh - 56px);
+  transition: var(--transition-smooth);
+}
+
+@media (max-width: 1200px) {
+  .yt-main-content {
+    margin-left: var(--sidebar-collapsed-width);
+  }
+}
+
+@media (max-width: 768px) {
+  .yt-main-content {
+    margin-left: 0;
+    padding: 16px 12px 60px 12px;
+  }
+}
+
+/* Header Bar */
+.yt-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 56px;
+  background-color: var(--yt-dark-body);
+  border-bottom: 1px solid var(--yt-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  z-index: 100;
+}
+
+/* Sidebar Layout */
+.yt-sidebar {
+  position: fixed;
+  left: 0;
+  top: 56px;
+  bottom: 0;
+  width: var(--sidebar-width);
+  background-color: var(--yt-dark-body);
+  display: flex;
+  flex-direction: column;
+  padding: 12px 8px;
+  overflow-y: auto;
+  z-index: 90;
+  transition: var(--transition-smooth);
+}
+
+@media (max-width: 1200px) {
+  .yt-sidebar {
+    width: var(--sidebar-collapsed-width);
+    align-items: center;
+    padding: 12px 4px;
+  }
+  .yt-sidebar .nav-text,
+  .yt-sidebar .sidebar-section-title {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .yt-sidebar {
+    display: none;
+  }
+}
+
+.yt-sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.yt-sidebar-item:hover {
+  background-color: var(--yt-dark-hover);
+}
+
+.yt-sidebar-item.active {
+  background-color: var(--yt-dark-hover);
+  font-weight: 700;
+}
+
+/* Category Chip Pills Bar */
+.category-chips-bar {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 16px;
+  scrollbar-width: none;
+}
+.category-chips-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.chip-pill {
+  padding: 6px 14px;
+  border-radius: 8px;
+  background-color: var(--yt-dark-card);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  border: none;
+  transition: var(--transition-fast);
+}
+
+.chip-pill:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.chip-pill.active {
+  background-color: var(--text-primary);
+  color: var(--yt-dark-body);
+  font-weight: 700;
+}
+
+/* Video Cards Grid */
+.video-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.video-card-item {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.thumbnail-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: #000;
+}
+
+.thumbnail-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: var(--transition-smooth);
+}
+
+.video-card-item:hover .thumbnail-img {
+  transform: scale(1.03);
+}
+
+.video-duration-badge {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Primary Video Player (Watch View) */
+.watch-layout {
+  display: flex;
+  gap: 24px;
+  max-width: 1750px;
+  margin: 0 auto;
+}
+
+.watch-main {
+  flex: 1.8;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.watch-sidebar-right {
+  flex: 1;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+@media (max-width: 1000px) {
+  .watch-layout {
+    flex-direction: column;
+  }
+  .watch-sidebar-right {
+    max-width: 100%;
+  }
+}

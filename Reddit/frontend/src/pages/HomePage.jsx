@@ -1,10 +1,15 @@
-import React from 'react';
-import { Flame, Sparkles, TrendingUp, Plus } from 'lucide-react';
+import React, { useState } from 'react';
+import { Flame, Sparkles, TrendingUp, Plus, RefreshCw } from 'lucide-react';
+import { usePostsQuery } from '../hooks/usePosts';
 import { usePosts } from '../context/PostContext';
 import PostCard from '../components/PostCard';
 
 export default function HomePage() {
-  const { posts, loadingPosts, activeSort, setActiveSort, setCreatePostModalOpen } = usePosts();
+  const [activeSort, setActiveSort] = useState('hot');
+  const { data, isLoading, isError, refetch } = usePostsQuery('', activeSort);
+  const { setCreatePostModalOpen } = usePosts();
+
+  const posts = Array.isArray(data) ? data : (data?.items || []);
 
   return (
     <div>
@@ -50,9 +55,17 @@ export default function HomePage() {
       </div>
 
       {/* Posts List */}
-      {loadingPosts ? (
+      {isLoading ? (
         <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
           Loading community feeds...
+        </div>
+      ) : isError ? (
+        <div style={{ textAlign: 'center', padding: '40px', backgroundColor: 'var(--bg-card)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+          <h3 style={{ color: '#ff4d4d' }}>Failed to load community feed</h3>
+          <p style={{ color: 'var(--text-secondary)', marginTop: '6px' }}>Database or network service may be unavailable.</p>
+          <button onClick={() => refetch()} className="btn-primary" style={{ marginTop: '14px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <RefreshCw size={16} /> Retry
+          </button>
         </div>
       ) : posts.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px', backgroundColor: 'var(--bg-card)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>

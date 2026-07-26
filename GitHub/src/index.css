@@ -1,0 +1,249 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Fira+Code:wght@400;500;600&display=swap');
+
+:root {
+  --gh-dark-body: #0d1117;
+  --gh-dark-panel: #161b22;
+  --gh-dark-header: #161b22;
+  --gh-dark-card: #21262d;
+  --gh-dark-hover: #30363d;
+  --gh-border: #30363d;
+  --gh-border-subtle: #21262d;
+  --gh-green: #238636;
+  --gh-green-hover: #2ea043;
+  --gh-blue: #58a6ff;
+  --gh-purple: #8957e5;
+  --text-primary: #c9d1d9;
+  --text-bold: #f0f6fc;
+  --text-secondary: #8b949e;
+  --text-muted: #6e7681;
+  --transition-fast: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-smooth: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-theme="light"] {
+  --gh-dark-body: #ffffff;
+  --gh-dark-panel: #f6f8fa;
+  --gh-dark-header: #24292f;
+  --gh-dark-card: #f6f8fa;
+  --gh-dark-hover: #f3f4f6;
+  --gh-border: #d0d7de;
+  --gh-border-subtle: #eaeef2;
+  --gh-green: #1f883d;
+  --gh-blue: #0969da;
+  --text-primary: #24292f;
+  --text-bold: #1f2328;
+  --text-secondary: #57606a;
+  --text-muted: #6e7781;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--gh-dark-body);
+  color: var(--text-primary);
+  overflow-x: hidden;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Code Fonts */
+code, pre {
+  font-family: 'Fira Code', Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+}
+
+/* Header Bar */
+.gh-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background-color: var(--gh-dark-header);
+  border-bottom: 1px solid var(--gh-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  z-index: 100;
+}
+
+/* Main Container Layout */
+.gh-main-container {
+  margin-top: 60px;
+  min-height: calc(100vh - 60px);
+  display: flex;
+  flex-direction: column;
+}
+
+.gh-content-wrapper {
+  max-width: 1280px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+
+/* Primary Button */
+.btn-gh-primary {
+  background-color: var(--gh-green);
+  color: white;
+  border: 1px solid rgba(240, 246, 252, 0.1);
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: var(--transition-fast);
+}
+
+.btn-gh-primary:hover {
+  background-color: var(--gh-green-hover);
+}
+
+/* Secondary Button */
+.btn-gh-secondary {
+  background-color: var(--gh-dark-card);
+  color: var(--text-bold);
+  border: 1px solid var(--gh-border);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: var(--transition-fast);
+}
+
+.btn-gh-secondary:hover {
+  background-color: var(--gh-dark-hover);
+  border-color: #8b949e;
+}
+
+/* GitHub Nav Tabs (Code, Issues, PRs, Actions) */
+.gh-tab-bar {
+  display: flex;
+  gap: 24px;
+  border-bottom: 1px solid var(--gh-border);
+  padding: 0 24px;
+  background-color: var(--gh-dark-panel);
+}
+
+.gh-tab-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 4px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: var(--transition-fast);
+}
+
+.gh-tab-item:hover {
+  color: var(--text-bold);
+}
+
+.gh-tab-item.active {
+  color: var(--text-bold);
+  border-bottom-color: #f78166;
+  font-weight: 700;
+}
+
+/* File Explorer List */
+.file-explorer-table {
+  width: 100%;
+  border: 1px solid var(--gh-border);
+  border-radius: 6px;
+  overflow: hidden;
+  background-color: var(--gh-dark-panel);
+  border-collapse: collapse;
+}
+
+.file-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--gh-border-subtle);
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.file-row:hover {
+  background-color: var(--gh-dark-card);
+}
+
+/* Code Viewer Frame */
+.code-viewer-container {
+  border: 1px solid var(--gh-border);
+  border-radius: 6px;
+  overflow: hidden;
+  background-color: var(--gh-dark-body);
+}
+
+.code-header {
+  background-color: var(--gh-dark-panel);
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--gh-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.code-pre-block {
+  padding: 16px;
+  overflow-x: auto;
+  color: #e6edf3;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* Contribution Heatmap Grid */
+.heatmap-container {
+  display: grid;
+  grid-template-rows: repeat(7, 12px);
+  grid-auto-flow: column;
+  grid-auto-columns: 12px;
+  gap: 3px;
+  overflow-x: auto;
+  padding: 10px 0;
+}
+
+.heatmap-cell {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  background-color: #161b22;
+}
+
+.heatmap-cell.level-1 { background-color: #0e4429; }
+.heatmap-cell.level-2 { background-color: #006d32; }
+.heatmap-cell.level-3 { background-color: #26a641; }
+.heatmap-cell.level-4 { background-color: #39d353; }

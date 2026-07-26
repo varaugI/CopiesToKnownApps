@@ -1,20 +1,37 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { ArrowBigUp, ArrowBigDown, MessageSquare, Bookmark, Share2, ExternalLink, CheckCircle } from 'lucide-react';
-import { usePosts } from '../context/PostContext';
+import { useVotePostMutation, useVotePollMutation } from '../hooks/usePosts';
 import { useAuth } from '../context/AuthContext';
 
 export default function PostCard({ post }) {
-  const { handleVote, handlePollVote } = usePosts();
-  const { user, showToast } = useAuth();
+  const voteMutation = useVotePostMutation();
+  const pollVoteMutation = useVotePollMutation();
+  const { user, showToast, openAuthModal } = useAuth();
   const [isSaved, setIsSaved] = useState(false);
-  const navigate = useNavigate();
 
   const authorName = post.author?.username || post.author || 'anonymous';
   const authorAvatar = post.author?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${authorName}`;
   const subName = post.subredditName || (post.subreddit?.name) || 'general';
 
   const userVote = post.userVote || 0;
+
+  const handleVote = (e, voteType) => {
+    e.stopPropagation();
+    if (!user) {
+      openAuthModal('login');
+      return;
+    }
+    voteMutation.mutate({ postId: post._id, voteType });
+  };
+
+  const handlePollVote = (optionId) => {
+    if (!user) {
+      openAuthModal('login');
+      return;
+    }
+    pollVoteMutation.mutate({ postId: post._id, optionId });
+  };
 
   const formattedDate = () => {
     try {
@@ -45,9 +62,10 @@ export default function PostCard({ post }) {
     <article className="post-card">
       <div className="vote-sidebar">
         <button
-          onClick={(e) => { e.stopPropagation(); handleVote(post._id, 1); }}
+          onClick={(e) => handleVote(e, 1)}
           className={`vote-btn ${userVote === 1 ? 'upvoted' : ''}`}
           title="Upvote"
+          disabled={voteMutation.isPending}
         >
           <ArrowBigUp size={24} fill={userVote === 1 ? 'currentColor' : 'none'} />
         </button>
@@ -57,9 +75,10 @@ export default function PostCard({ post }) {
         </span>
 
         <button
-          onClick={(e) => { e.stopPropagation(); handleVote(post._id, -1); }}
+          onClick={(e) => handleVote(e, -1)}
           className={`vote-btn ${userVote === -1 ? 'downvoted' : ''}`}
           title="Downvote"
+          disabled={voteMutation.isPending}
         >
           <ArrowBigDown size={24} fill={userVote === -1 ? 'currentColor' : 'none'} />
         </button>
@@ -137,7 +156,7 @@ export default function PostCard({ post }) {
                 <div
                   key={optId}
                   className="poll-option"
-                  onClick={() => handlePollVote(post._id, optId)}
+                  onClick={() => handlePollVote(optId)}
                   style={{ borderColor: isSelected ? 'var(--reddit-orange)' : undefined }}
                 >
                   <div className="poll-bar" style={{ width: `${percentage}%` }} />

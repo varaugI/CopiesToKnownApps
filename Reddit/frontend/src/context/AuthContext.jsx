@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import api from '../services/api';
+import api, { setMemoryAccessToken } from '../services/api';
 
 const AuthContext = createContext();
 
@@ -11,29 +11,22 @@ export const AuthProvider = ({ children }) => {
   const [toastMessage, setToastMessage] = useState('');
 
   useEffect(() => {
-    const checkLoggedInUser = async () => {
-      const token = localStorage.getItem('tentra_token');
-      const savedUser = localStorage.getItem('tentra_user');
-      
-      if (savedUser) {
-        try {
-          setUser(JSON.parse(savedUser));
-        } catch (e) {}
+    const initializeSession = async () => {
+      try {
+        // Attempt silent refresh via HTTP-Only cookie on application load
+        const res = await api.post('/auth/refresh');
+        setMemoryAccessToken(res.data.accessToken);
+        setUser(res.data.user);
+      } catch (err) {
+        // No active session cookie or session expired
+        setMemoryAccessToken(null);
+        setUser(null);
+      } finally {
+        setLoading(false);
       }
-
-      if (token) {
-        try {
-          const res = await api.get('/auth/me');
-          setUser(res.data);
-          localStorage.setItem('tentra_user', JSON.stringify(res.data));
-        } catch (err) {
-          // Token invalid or backend offline, retain fallback demo user if present
-        }
-      }
-      setLoading(false);
     };
 
-    checkLoggedInUser();
+    initializeSession();
   }, []);
 
   const showToast = (msg) => {
@@ -46,68 +39,49 @@ export const AuthProvider = ({ children }) => {
   const login = async (emailOrUsername, password) => {
     try {
       const res = await api.post('/auth/login', { emailOrUsername, password });
-      setUser(res.data);
-      localStorage.setItem('tentra_token', res.data.token);
-      localStorage.setItem('tentra_user', JSON.stringify(res.data));
+      setMemoryAccessToken(res.data.accessToken);
+      setUser(res.data.user);
       setAuthModalOpen(false);
-      showToast(`Welcome back, u/${res.data.username}! 👋`);
+      showToast(`Welcome back, u/${res.data.user.username}! 👋`);
       return { success: true };
     } catch (err) {
-      // Fallback demo login
-      const username = emailOrUsername.includes('@') ? emailOrUsername.split('@')[0] : emailOrUsername;
-      const demoUser = {
-        _id: 'usr_' + username.toLowerCase(),
-        username: username || 'DemoUser',
-        email: `${username}@tentrasocial.com`,
-        avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`,
-        bio: 'Reddit enthusiast and community builder.',
-        postKarma: 142,
-        commentKarma: 88,
-        token: 'demo_token_' + Date.now()
-      };
-      setUser(demoUser);
-      localStorage.setItem('tentra_token', demoUser.token);
-      localStorage.setItem('tentra_user', JSON.stringify(demoUser));
-      setAuthModalOpen(false);
-      showToast(`LoggedIn as u/${demoUser.username}!`);
-      return { success: true };
+      const errorMsg = err.response?.data?.message || 'Login failed. Please check credentials or database status.';
+      showToast(`❌ ${errorMsg}`);
+      return { success: false, message: errorMsg };
     }
   };
 
   const register = async (username, email, password) => {
     try {
       const res = await api.post('/auth/register', { username, email, password });
-      setUser(res.data);
-      localStorage.setItem('tentra_token', res.data.token);
-      localStorage.setItem('tentra_user', JSON.stringify(res.data));
+      setMemoryAccessToken(res.data.accessToken);
+      setUser(res.data.user);
       setAuthModalOpen(false);
-      showToast(`Welcome to TentraSocial, u/${res.data.username}! 🚀`);
+      showToast(`Welcome to TentraSocial, u/${res.data.user.username}! 🚀`);
       return { success: true };
     } catch (err) {
-      const demoUser = {
-        _id: 'usr_' + username.toLowerCase(),
-        username,
-        email,
-        avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`,
-        bio: 'Fresh Reddit member!',
-        postKarma: 1,
-        commentKarma: 1,
-        token: 'demo_token_' + Date.now()
-      };
-      setUser(demoUser);
-      localStorage.setItem('tentra_token', demoUser.token);
-      localStorage.setItem('tentra_user', JSON.stringify(demoUser));
-      setAuthModalOpen(false);
-      showToast(`Account created for u/${demoUser.username}! 🎉`);
-      return { success: true };
+      const errorMsg = err.response?.data?.message || 'Registration failed. Check password requirements or database status.';
+      showToast(`❌ ${errorMsg}`);
+      return { success: false, message: errorMsg };
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch (e) {}
+    setMemoryAccessToken(null);
     setUser(null);
-    localStorage.removeItem('tentra_token');
-    localStorage.removeItem('tentra_user');
     showToast('Logged out successfully.');
+  };
+
+  const logoutAll = async () => {
+    try {
+      await api.post('/auth/logout-all');
+    } catch (e) {}
+    setMemoryAccessToken(null);
+    setUser(null);
+    showToast('Logged out of all sessions & devices.');
   };
 
   const openAuthModal = (mode = 'login') => {
@@ -122,6 +96,7 @@ export const AuthProvider = ({ children }) => {
       login,
       register,
       logout,
+      logoutAll,
       authModalOpen,
       setAuthModalOpen,
       authModalMode,
@@ -135,3 +110,5 @@ export const AuthProvider = ({ children }) => {
 };
 
 export const useAuth = () => useContext(AuthContext);
+
+

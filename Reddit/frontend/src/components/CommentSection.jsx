@@ -1,31 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { fetchCommentsService, createCommentService } from '../services/api';
+import React, { useState } from 'react';
+import { useCommentsQuery, useCreateCommentMutation } from '../hooks/useComments';
 import CommentItem from './CommentItem';
 import { useAuth } from '../context/AuthContext';
-import { MessageSquare, Send } from 'lucide-react';
+import { MessageSquare, Send, Loader2 } from 'lucide-react';
 
 export default function CommentSection({ postId, postAuthorId }) {
-  const [comments, setComments] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { data: commentsData, isLoading, isError, refetch } = useCommentsQuery(postId);
+  const createCommentMutation = useCreateCommentMutation();
   const [newCommentText, setNewCommentText] = useState('');
-  const { user, openAuthModal, showToast } = useAuth();
+  const { user, openAuthModal } = useAuth();
 
-  useEffect(() => {
-    const loadComments = async () => {
-      setLoading(true);
-      try {
-        const data = await fetchCommentsService(postId);
-        setComments(data);
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
-      }
-    };
-    if (postId) loadComments();
-  }, [postId]);
+  const comments = Array.isArray(commentsData) ? commentsData : (commentsData?.items || []);
 
-  const handleRootCommentSubmit = async (e) => {
+  const handleRootCommentSubmit = (e) => {
     e.preventDefault();
     if (!newCommentText.trim()) return;
 
@@ -34,38 +21,14 @@ export default function CommentSection({ postId, postAuthorId }) {
       return;
     }
 
-    try {
-      const created = await createCommentService(postId, newCommentText);
-      showToast('Comment posted! 💬');
-      setNewCommentText('');
-
-      // Add to root comments
-      setComments(prev => [created, ...prev]);
-    } catch (e) {
-      showToast('Failed to post comment');
-    }
-  };
-
-  const handleChildReplyAdded = (newReply, parentId) => {
-    const attachReply = (list) => {
-      return list.map(item => {
-        if (item._id === parentId) {
-          return {
-            ...item,
-            children: [...(item.children || []), newReply]
-          };
+    createCommentMutation.mutate(
+      { postId, content: newCommentText },
+      {
+        onSuccess: () => {
+          setNewCommentText('');
         }
-        if (item.children && item.children.length > 0) {
-          return {
-            ...item,
-            children: attachReply(item.children)
-          };
-        }
-        return item;
-      });
-    };
-
-    setComments(prev => attachReply(prev));
+      }
+    );
   };
 
   return (
@@ -87,8 +50,13 @@ export default function CommentSection({ postId, postAuthorId }) {
             onChange={(e) => setNewCommentText(e.target.value)}
             style={{ width: '100%', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-input)', color: 'var(--text-main)', fontSize: '0.92rem' }}
           />
-          <button type="submit" className="btn-primary" style={{ alignSelf: 'flex-end' }}>
-            <Send size={16} /> Comment
+          <button
+            type="submit"
+            className="btn-primary"
+            disabled={createCommentMutation.isPending}
+            style={{ alignSelf: 'flex-end', display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            {createCommentMutation.isPending ? <Loader2 size={16} className="spin" /> : <Send size={16} />} Comment
           </button>
         </form>
       ) : (
@@ -100,8 +68,15 @@ export default function CommentSection({ postId, postAuthorId }) {
         </div>
       )}
 
-      {loading ? (
+      {isLoading ? (
         <div style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '20px' }}>Loading comments...</div>
+      ) : isError ? (
+        <div style={{ color: '#ff4d4d', textAlign: 'center', padding: '20px' }}>
+          Failed to load comments.{' '}
+          <button onClick={() => refetch()} style={{ textDecoration: 'underline', color: 'var(--text-main)', background: 'none', border: 'none', cursor: 'pointer' }}>
+            Retry
+          </button>
+        </div>
       ) : comments.length === 0 ? (
         <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '30px' }}>
           No comments yet. Be the first to start the discussion!
@@ -114,7 +89,6 @@ export default function CommentSection({ postId, postAuthorId }) {
               comment={cmt}
               postAuthorId={postAuthorId}
               postId={postId}
-              onReplyAdded={handleChildReplyAdded}
             />
           ))}
         </div>
