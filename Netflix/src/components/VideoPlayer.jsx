@@ -10,12 +10,12 @@ import {
   Maximize,
   Minimize,
   MessageSquare,
-  Users
+  Settings
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export default function VideoPlayer() {
-  const { activeVideoMovie, closeVideo } = useApp();
+  const { activeVideoMovie, closeVideo, currentProfile } = useApp();
   const videoRef = useRef(null);
 
   const [isPlaying, setIsPlaying] = useState(true);
@@ -24,9 +24,11 @@ export default function VideoPlayer() {
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
+  const [quality, setQuality] = useState('Auto (1080p)');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [showAudioSubtitles, setShowAudioSubtitles] = useState(false);
+  const [showQualityMenu, setShowQualityMenu] = useState(false);
   const [selectedAudio, setSelectedAudio] = useState('English [Original] (5.1 Atmos)');
   const [selectedSubtitle, setSelectedSubtitle] = useState('English [CC]');
 
@@ -174,12 +176,14 @@ export default function VideoPlayer() {
     return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
+  const videoSrc = activeVideoMovie.videoUrl || `http://localhost:8080/api/stream/${activeVideoMovie.id}`;
+
   return (
     <div className="video-player-screen">
       <video
         ref={videoRef}
         className="player-video"
-        src={activeVideoMovie.videoUrl}
+        src={videoSrc}
         autoPlay
         onTimeUpdate={handleTimeUpdate}
         onClick={togglePlay}
@@ -203,7 +207,7 @@ export default function VideoPlayer() {
           pointerEvents: 'none',
           transition: 'bottom 0.3s'
         }}>
-          [ {selectedSubtitle} ]: Streaming high-definition audio/video content
+          [ {selectedSubtitle} ]: HLS Stream ({quality})
         </div>
       )}
 
@@ -215,7 +219,7 @@ export default function VideoPlayer() {
           </button>
           <span className="player-title">{activeVideoMovie.title}</span>
           <span style={{ fontSize: 12, color: '#AAA', marginLeft: 16 }}>
-            (Press Space: Play/Pause, F: Fullscreen, M: Mute, ←/→: Seek)
+            (HLS Stream: {quality} | Space: Play/Pause, F: Fullscreen, M: Mute)
           </span>
         </div>
 
@@ -243,6 +247,27 @@ export default function VideoPlayer() {
                   onClick={() => setSelectedSubtitle(s)}
                 >
                   {s}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Quality Menu Overlay */}
+        {showQualityMenu && (
+          <div className="audio-subtitles-modal" style={{ right: 80, left: 'auto', width: 220 }}>
+            <div className="audio-subtitles-col">
+              <h4>Stream Quality</h4>
+              {['Auto (1080p)', '1080p (5.0 Mbps)', '720p (2.8 Mbps)', '480p (1.4 Mbps)'].map(q => (
+                <div
+                  key={q}
+                  className={`audio-subtitles-option ${quality === q ? 'active' : ''}`}
+                  onClick={() => {
+                    setQuality(q);
+                    setShowQualityMenu(false);
+                  }}
+                >
+                  {q}
                 </div>
               ))}
             </div>
@@ -300,7 +325,21 @@ export default function VideoPlayer() {
 
               <button
                 className="icon-btn"
-                onClick={() => setShowAudioSubtitles(prev => !prev)}
+                onClick={() => {
+                  setShowQualityMenu(prev => !prev);
+                  setShowAudioSubtitles(false);
+                }}
+                title="Stream Quality"
+              >
+                <Settings size={20} />
+              </button>
+
+              <button
+                className="icon-btn"
+                onClick={() => {
+                  setShowAudioSubtitles(prev => !prev);
+                  setShowQualityMenu(false);
+                }}
                 title="Audio & Subtitles"
               >
                 <MessageSquare size={20} />

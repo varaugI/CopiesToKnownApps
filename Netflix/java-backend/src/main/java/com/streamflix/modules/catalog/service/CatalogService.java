@@ -7,6 +7,8 @@ import com.streamflix.modules.catalog.dto.TitleDetailDto;
 import com.streamflix.modules.catalog.dto.TitleDto;
 import com.streamflix.modules.catalog.repository.GenreRepository;
 import com.streamflix.modules.catalog.repository.TitleRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -26,6 +28,7 @@ public class CatalogService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "catalog_titles", key = "(#type ?: '') + '-' + (#genreSlug ?: '') + '-' + (#query ?: '') + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
     public Page<TitleDto> getTitles(String type, String genreSlug, String query, Pageable pageable) {
         Page<Title> titlesPage;
 
@@ -43,6 +46,7 @@ public class CatalogService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "title_details", key = "#id")
     public TitleDetailDto getTitleById(String id) {
         Title title = titleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Title not found with ID: " + id));
@@ -50,6 +54,7 @@ public class CatalogService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "billboard_title")
     public TitleDto getBillboardTitle() {
         Title billboard = titleRepository.findTopBillboardTitle()
                 .orElseGet(() -> titleRepository.findAll().stream().findFirst()
@@ -58,10 +63,16 @@ public class CatalogService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "genres")
     public List<GenreDto> getGenres() {
         return genreRepository.findAll()
                 .stream()
                 .map(GenreDto::new)
                 .toList();
+    }
+
+    @CacheEvict(value = {"catalog_titles", "billboard_title", "title_details", "genres"}, allEntries = true)
+    public void evictCatalogCache() {
+        // Explicit cache eviction method for catalog mutations
     }
 }

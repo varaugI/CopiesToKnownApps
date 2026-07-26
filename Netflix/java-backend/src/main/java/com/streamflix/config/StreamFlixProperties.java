@@ -29,6 +29,8 @@ public class StreamFlixProperties {
     public static class Storage {
         private String endpoint = "http://localhost:9000";
         private String bucket = "streamflix-media";
+        private String accessKey = "minioadmin";
+        private String secretKey = "minioadmin";
 
         public String getEndpoint() {
             return endpoint;
@@ -44,6 +46,22 @@ public class StreamFlixProperties {
 
         public void setBucket(String bucket) {
             this.bucket = bucket;
+        }
+
+        public String getAccessKey() {
+            return accessKey;
+        }
+
+        public void setAccessKey(String accessKey) {
+            this.accessKey = accessKey;
+        }
+
+        public String getSecretKey() {
+            return secretKey;
+        }
+
+        public void setSecretKey(String secretKey) {
+            this.secretKey = secretKey;
         }
     }
 

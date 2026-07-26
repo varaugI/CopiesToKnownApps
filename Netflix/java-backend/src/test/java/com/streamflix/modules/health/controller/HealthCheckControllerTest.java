@@ -1,9 +1,11 @@
 package com.streamflix.modules.health.controller;
 
 import com.streamflix.common.filter.JwtAuthenticationFilter;
+import com.streamflix.common.filter.RateLimitingFilter;
 import com.streamflix.common.filter.RequestIdFilter;
 import com.streamflix.config.SecurityConfig;
 import com.streamflix.modules.identity.service.JwtTokenService;
+import com.streamflix.modules.ratelimit.service.RateLimiterService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.actuate.health.Health;
@@ -18,7 +20,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(HealthCheckController.class)
-@Import({RequestIdFilter.class, SecurityConfig.class, JwtAuthenticationFilter.class})
+@Import({RequestIdFilter.class, RateLimitingFilter.class, SecurityConfig.class, JwtAuthenticationFilter.class})
 class HealthCheckControllerTest {
 
     @Autowired
@@ -29,6 +31,9 @@ class HealthCheckControllerTest {
 
     @MockBean
     private JwtTokenService jwtTokenService;
+
+    @MockBean
+    private RateLimiterService rateLimiterService;
 
     @Test
     void getHealth_ReturnsOkWithRequestIdHeader() throws Exception {
