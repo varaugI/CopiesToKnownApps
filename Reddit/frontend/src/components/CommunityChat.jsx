@@ -1,18 +1,66 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MessageCircle, Send, X, Users } from 'lucide-react';
+import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
 
 const defaultChatMessages = [
   { id: 1, user: 'AlexDev', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=AlexDev', text: 'Welcome to the live chat room! Feel free to talk about tech.', time: '10:40 AM' },
   { id: 2, user: 'SarahFrontend', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=SarahFrontend', text: 'Hey Alex! Loving the MERN Reddit stack implementation.', time: '10:42 AM' },
-  { id: 3, user: 'QuantumCoder', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=QuantumCoder', text: 'Nested threads and live polling are super slick.', time: '10:44 AM' }
+  { id: 3, user: 'QuantumCoder', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=QuantumCoder', text: 'Nested threads and live WebSockets are super slick.', time: '10:44 AM' }
 ];
 
 export default function CommunityChat({ subredditName }) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState(defaultChatMessages);
   const [input, setInput] = useState('');
+  const [typingUser, setTypingUser] = useState('');
   const { user, openAuthModal } = useAuth();
+  const { socket, joinRoom, leaveRoom, sendChatMessage, sendTypingIndicator } = useSocket();
+
+  const roomName = `livechat:${subredditName || 'global'}`;
+
+  useEffect(() => {
+    if (isOpen) {
+      joinRoom(roomName);
+    }
+    return () => {
+      if (isOpen) leaveRoom(roomName);
+    };
+  }, [isOpen, roomName]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNewMessage = (msgData) => {
+      setMessages(prev => [
+        ...prev,
+        {
+          id: msgData.id,
+          user: msgData.sender?.username || 'anonymous',
+          avatar: msgData.sender?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${msgData.sender?.username}`,
+          text: msgData.content,
+          time: new Date(msgData.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]);
+    };
+
+    const handleUserTyping = (data) => {
+      if (data.isTyping) {
+        setTypingUser(data.username);
+        setTimeout(() => setTypingUser(''), 3000);
+      } else {
+        setTypingUser('');
+      }
+    };
+
+    socket.on('new_chat_message', handleNewMessage);
+    socket.on('user_typing', handleUserTyping);
+
+    return () => {
+      socket.off('new_chat_message', handleNewMessage);
+      socket.off('user_typing', handleUserTyping);
+    };
+  }, [socket]);
 
   const handleSend = (e) => {
     e.preventDefault();
@@ -23,16 +71,15 @@ export default function CommunityChat({ subredditName }) {
       return;
     }
 
-    const newMsg = {
-      id: Date.now(),
-      user: user.username,
-      avatar: user.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${user.username}`,
-      text: input,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-
-    setMessages([...messages, newMsg]);
+    sendChatMessage(roomName, input.trim());
     setInput('');
+  };
+
+  const handleInputChange = (e) => {
+    setInput(e.target.value);
+    if (user && socket) {
+      sendTypingIndicator(roomName, e.target.value.length > 0);
+    }
   };
 
   return (
@@ -98,13 +145,19 @@ export default function CommunityChat({ subredditName }) {
             ))}
           </div>
 
+          {typingUser && (
+            <div style={{ padding: '4px 12px', fontSize: '0.75rem', color: 'var(--reddit-orange)', fontStyle: 'italic' }}>
+              u/{typingUser} is typing...
+            </div>
+          )}
+
           {/* Input Form */}
           <form onSubmit={handleSend} style={{ padding: '10px', borderTop: '1px solid var(--border-color)', display: 'flex', gap: '6px' }}>
             <input
               type="text"
               placeholder="Send a chat message..."
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={handleInputChange}
               style={{
                 flex: 1,
                 padding: '8px 12px',

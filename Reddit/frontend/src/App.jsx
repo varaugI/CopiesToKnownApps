@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { PostProvider } from './context/PostContext';
+import { SocketProvider } from './context/SocketContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
@@ -45,7 +46,8 @@ export default function App() {
     <ErrorBoundary>
       <ThemeProvider>
         <AuthProvider>
-          <PostProvider>
+          <SocketProvider>
+            <PostProvider>
             <BrowserRouter>
               <div className="app-container">
                 <Navbar />
@@ -77,8 +79,9 @@ export default function App() {
               </div>
             </BrowserRouter>
           </PostProvider>
-        </AuthProvider>
-      </ThemeProvider>
+        </SocketProvider>
+      </AuthProvider>
+    </ThemeProvider>
     </ErrorBoundary>
   );
 }

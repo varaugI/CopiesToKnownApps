@@ -5,6 +5,8 @@ import { User } from '../users/user.model.js';
 import { Vote } from '../votes/vote.model.js';
 import { atomicVoteTarget } from '../votes/vote.service.js';
 import { isDbConnected } from '../../config/database.js';
+import { getCache, setCache, deleteCache, deleteCachePattern } from '../../common/cache/cache.service.js';
+import { emitPostVoteUpdate } from '../../common/realtime/socket.emitter.js';
 import { BadRequestError, NotFoundError, ServiceUnavailableError } from '../../common/errors/app-error.js';
 
 export const getPostsList = async (
@@ -165,11 +167,16 @@ export const createNewPost = async (
     .lean();
 
   populated.userVote = 1;
+  deleteCachePattern('posts:feed:*').catch(() => {});
   return populated;
 };
 
 export const voteOnPost = async (postId: string, userId: string, voteType: number) => {
-  return await atomicVoteTarget(userId, 'Post', postId, voteType);
+  const result = await atomicVoteTarget(userId, 'Post', postId, voteType);
+  deleteCachePattern('posts:feed:*').catch(() => {});
+  deleteCache(`post:detail:${postId}`).catch(() => {});
+  emitPostVoteUpdate(postId, result.score, result.upvotesCount, result.downvotesCount);
+  return result;
 };
 
 export const voteOnPoll = async (postId: string, userId: string, optionId: string) => {

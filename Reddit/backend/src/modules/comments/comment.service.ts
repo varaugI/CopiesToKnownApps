@@ -5,6 +5,7 @@ import { User } from '../users/user.model.js';
 import { Vote } from '../votes/vote.model.js';
 import { atomicVoteTarget } from '../votes/vote.service.js';
 import { isDbConnected } from '../../config/database.js';
+import { emitNewComment } from '../../common/realtime/socket.emitter.js';
 import { BadRequestError, NotFoundError, ForbiddenError, ServiceUnavailableError } from '../../common/errors/app-error.js';
 
 const MAX_DEPTH = 5;
@@ -164,6 +165,7 @@ export const createNewComment = async (
 
   const populated: any = await Comment.findById(comment._id).populate('author', 'username avatar').lean();
   populated.userVote = 1;
+  emitNewComment(postId, populated);
   return populated;
 };
 

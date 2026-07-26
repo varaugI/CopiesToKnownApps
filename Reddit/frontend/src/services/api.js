@@ -150,6 +150,24 @@ export const deleteCommentService = async (commentId) => {
   return res.data;
 };
 
+export const getPresignedUrlService = async (filename, fileType, fileSize) => {
+  const res = await api.post('/media/presigned-url', { filename, fileType, fileSize });
+  return res.data;
+};
+
+export const uploadFileToS3Service = async (uploadUrl, file) => {
+  const res = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': file.type
+    },
+    body: file
+  });
+  if (!res.ok) {
+    throw new Error(`Direct S3 upload failed with status ${res.status}`);
+  }
+};
+
 export default api;
 
 

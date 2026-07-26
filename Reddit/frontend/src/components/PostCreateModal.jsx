@@ -1,14 +1,19 @@
 import React, { useState } from 'react';
-import { X, FileText, Image as ImageIcon, Link2, BarChart2, Plus, Trash2 } from 'lucide-react';
+import { X, FileText, Image as ImageIcon, Link2, BarChart2, Plus, Trash2, Upload, Loader2 } from 'lucide-react';
 import { usePosts } from '../context/PostContext';
+import { getPresignedUrlService, uploadFileToS3Service } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 export default function PostCreateModal() {
   const { createPostModalOpen, setCreatePostModalOpen, subreddits, addPost, activeSubreddit } = usePosts();
+  const { showToast } = useAuth();
   const [postType, setPostType] = useState('text'); // 'text' | 'image' | 'link' | 'poll'
   const [targetSub, setTargetSub] = useState(activeSubreddit || (subreddits[0]?.name || 'webdev'));
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [mediaUrl, setMediaUrl] = useState('');
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
   const [flair, setFlair] = useState('');
   const [pollOptions, setPollOptions] = useState(['Option 1', 'Option 2']);
@@ -16,6 +21,13 @@ export default function PostCreateModal() {
   const [isSpoiler, setIsSpoiler] = useState(false);
 
   if (!createPostModalOpen) return null;
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+    }
+  };
 
   const handleAddPollOption = () => {
     if (pollOptions.length < 6) {
@@ -35,15 +47,37 @@ export default function PostCreateModal() {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!title.trim()) return;
+
+    let finalMediaUrl = mediaUrl;
+
+    if (postType === 'image' && selectedFile) {
+      setIsUploading(true);
+      try {
+        showToast('Requesting S3 pre-signed upload URL... ☁️');
+        const presigned = await getPresignedUrlService(selectedFile.name, selectedFile.type, selectedFile.size);
+        
+        showToast('Uploading media directly to S3/MinIO... 🚀');
+        await uploadFileToS3Service(presigned.uploadUrl, selectedFile);
+        
+        finalMediaUrl = presigned.publicUrl;
+        showToast('Media uploaded to S3 storage! 📌');
+      } catch (err) {
+        showToast(`❌ S3 Upload failed: ${err.message}`);
+        setIsUploading(false);
+        return;
+      } finally {
+        setIsUploading(false);
+      }
+    }
 
     addPost({
       title,
       type: postType,
       content,
-      mediaUrl,
+      mediaUrl: finalMediaUrl,
       linkUrl,
       pollOptions: postType === 'poll' ? pollOptions.filter(o => o.trim()) : [],
       subredditName: targetSub,
@@ -56,6 +90,7 @@ export default function PostCreateModal() {
     setTitle('');
     setContent('');
     setMediaUrl('');
+    setSelectedFile(null);
     setLinkUrl('');
     setFlair('');
   };
@@ -140,19 +175,28 @@ export default function PostCreateModal() {
 
           {postType === 'image' && (
             <div className="form-group">
-              <label>Image / Media URL</label>
+              <label style={{ display: 'block', marginBottom: '8px' }}>Direct S3 Upload or Image URL</label>
+              <div style={{ padding: '16px', border: '2px dashed var(--border-color)', borderRadius: '8px', backgroundColor: 'var(--bg-input)', textAlign: 'center', marginBottom: '12px' }}>
+                <Upload size={24} style={{ color: 'var(--reddit-orange)', marginBottom: '6px' }} />
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                  Upload image directly to MinIO/S3 Object Storage
+                </div>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif,video/mp4"
+                  onChange={handleFileChange}
+                  style={{ fontSize: '0.85rem' }}
+                />
+              </div>
+
+              <div style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '8px' }}>OR provide an external image URL</div>
+
               <input
                 type="url"
                 placeholder="https://images.unsplash.com/photo-..."
                 value={mediaUrl}
                 onChange={(e) => setMediaUrl(e.target.value)}
-                required
               />
-              {mediaUrl && (
-                <div style={{ marginTop: '10px', borderRadius: '8px', overflow: 'hidden', maxHeight: '180px' }}>
-                  <img src={mediaUrl} alt="Preview" style={{ width: '100%', objectFit: 'cover' }} />
-                </div>
-              )}
             </div>
           )}
 
@@ -223,8 +267,8 @@ export default function PostCreateModal() {
             <button type="button" className="btn-secondary" onClick={() => setCreatePostModalOpen(false)}>
               Cancel
             </button>
-            <button type="submit" className="btn-primary">
-              Post to r/{targetSub}
+            <button type="submit" className="btn-primary" disabled={isUploading} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {isUploading ? <Loader2 size={16} className="spin" /> : null} Post to r/{targetSub}
             </button>
           </div>
         </form>
