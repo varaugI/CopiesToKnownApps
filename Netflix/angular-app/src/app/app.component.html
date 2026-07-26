@@ -1,0 +1,111 @@
+<div className="app-container">
+  <!-- Angular Navbar -->
+  <nav className="navbar">
+    <div style="display: flex; align-items: center; gap: 30px;">
+      <div className="logo-text" (click)="selectedTab = 'Home'; searchQuery = ''">STREAMFLIX</div>
+      <ul className="nav-links">
+        <li className="nav-link" [class.active]="selectedTab === 'Home'" (click)="selectedTab = 'Home'">Home</li>
+        <li className="nav-link" [class.active]="selectedTab === 'TV Shows'" (click)="selectedTab = 'TV Shows'">TV Shows</li>
+        <li className="nav-link" [class.active]="selectedTab === 'Movies'" (click)="selectedTab = 'Movies'">Movies</li>
+        <li className="nav-link" [class.active]="selectedTab === 'My List'" (click)="selectedTab = 'My List'">My List</li>
+      </ul>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 20px;">
+      <input
+        type="text"
+        placeholder="Search titles..."
+        [(ngModel)]="searchQuery"
+        (input)="onSearchChange()"
+        style="background: rgba(0,0,0,0.7); border: 1px solid #555; color: white; padding: 6px 12px; border-radius: 4px; outline: none; font-size: 14px;"
+      />
+
+      <div *ngIf="activeProfile" style="display: flex; align-items: center; gap: 8px;">
+        <img [src]="activeProfile.avatar" [alt]="activeProfile.name" style="width: 32px; height: 32px; border-radius: 4px;" />
+        <span style="font-size: 14px; font-weight: 600;">{{ activeProfile.name }}</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Search Overlay -->
+  <div *ngIf="searchQuery" style="padding: 100px 4% 40px;">
+    <h2 style="margin-bottom: 20px;">Search Results for "{{ searchQuery }}"</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px;">
+      <div *ngFor="let movie of searchResults" className="movie-card" (click)="openModal(movie)">
+        <img [src]="movie.poster" [alt]="movie.title" />
+        <div style="padding: 8px; font-weight: 600; font-size: 14px;">{{ movie.title }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Home Content -->
+  <div *ngIf="!searchQuery">
+    <!-- Hero Billboard -->
+    <div *ngIf="billboardMovie" className="billboard" [style.backgroundImage]="'url(' + billboardMovie.backdrop + ')'">
+      <div className="billboard-vignette"></div>
+      <div className="billboard-content">
+        <div style="background: #E50914; color: white; display: inline-block; padding: 2px 8px; border-radius: 2px; font-size: 11px; font-weight: 800; margin-bottom: 12px; letter-spacing: 1px;">
+          ANGULAR EDITION
+        </div>
+        <h1 className="billboard-title">{{ billboardMovie.title }}</h1>
+        <p className="billboard-overview">{{ billboardMovie.overview }}</p>
+        <div>
+          <button className="btn btn-primary" (click)="playMovie(billboardMovie)">▶ Play</button>
+
+          <button className="btn btn-secondary" (click)="openModal(billboardMovie)">ℹ More Info</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Category Content Rows -->
+    <div style="margin-top: -40px; position: relative; z-index: 5;">
+      <div *ngFor="let cat of categories" className="row-container">
+        <h2 className="row-title">{{ cat }}</h2>
+        <div className="row-grid">
+          <div *ngFor="let movie of getMoviesByCategory(cat)" className="movie-card" (click)="openModal(movie)">
+            <img [src]="movie.poster" [alt]="movie.title" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Movie Details Modal Dialog -->
+  <div *ngIf="activeModalMovie" className="modal-overlay" (click)="closeModal()">
+    <div className="modal-card" (click)="$event.stopPropagation()">
+      <button className="close-btn" (click)="closeModal()">✕</button>
+      <img [src]="activeModalMovie.backdrop" [alt]="activeModalMovie.title" style="width: 100%; height: 220px; object-fit: cover; border-radius: 6px; margin-bottom: 16px;" />
+      <h2 style="font-size: 2rem; margin-bottom: 8px;">{{ activeModalMovie.title }}</h2>
+      <div style="display: flex; gap: 12px; font-size: 14px; color: #46D369; font-weight: 700; margin-bottom: 16px;">
+        <span>{{ activeModalMovie.matchScore }}% Match</span>
+        <span style="color: #AAA;">{{ activeModalMovie.releaseYear }}</span>
+        <span style="color: #AAA;">{{ activeModalMovie.ageRating }}</span>
+        <span style="color: #AAA;">{{ activeModalMovie.resolution }}</span>
+      </div>
+      <p style="font-size: 15px; line-height: 1.6; color: #DDD; margin-bottom: 20px;">
+        {{ activeModalMovie.overview }}
+      </p>
+      <div style="display: flex; gap: 12px;">
+        <button className="btn btn-primary" (click)="playMovie(activeModalMovie); closeModal()">▶ Play Movie</button>
+        <button className="btn btn-secondary" (click)="toggleMyList(activeModalMovie.id)">
+          {{ isInMyList(activeModalMovie.id) ? '✓ In My List' : '+ Add to My List' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fullscreen Video Player -->
+  <div *ngIf="activeVideoMovie" style="position: fixed; inset: 0; background: black; z-index: 900; display: flex; flex-direction: column;">
+    <div style="padding: 20px; display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.8);">
+      <button (click)="closeVideo()" style="background: transparent; border: none; color: white; font-size: 24px; cursor: pointer;">← Back</button>
+      <h3 style="font-size: 18px;">Playing: {{ activeVideoMovie.title }}</h3>
+      <div></div>
+    </div>
+    <video [src]="activeVideoMovie.videoUrl" controls autoplay style="width: 100%; height: 100%; object-fit: contain;"></video>
+  </div>
+
+  <!-- Angular Indicator Badge -->
+  <div className="angular-badge">
+    🅰️ Powered by Angular + Node.js API
+  </div>
+</div>
