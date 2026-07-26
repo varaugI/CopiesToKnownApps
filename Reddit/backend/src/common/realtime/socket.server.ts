@@ -1,6 +1,8 @@
 import { Server as HttpServer } from 'node:http';
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
+import { createAdapter } from '@socket.io/redis-adapter';
+import { getRedisClient, isRedisConnected } from '../../config/redis.js';
 import { env } from '../../config/env.config.js';
 import { activeWebsocketGauge } from '../observability/metrics.js';
 import { logger } from '../logging/logger.js';
@@ -26,6 +28,16 @@ export const initSocketServer = (httpServer: HttpServer): SocketIOServer => {
     },
     transports: ['websocket', 'polling']
   });
+
+  // Horizontal Multi-Node Scaling via Socket.IO Redis Adapter
+  if (isRedisConnected()) {
+    const pubClient = getRedisClient();
+    if (pubClient) {
+      const subClient = pubClient.duplicate();
+      io.adapter(createAdapter(pubClient, subClient));
+      logger.info('🚀 Socket.IO Redis Adapter attached for horizontal multi-node scaling');
+    }
+  }
 
   // JWT Handshake Auth Middleware
   io.use((socket: AuthenticatedSocket, next) => {

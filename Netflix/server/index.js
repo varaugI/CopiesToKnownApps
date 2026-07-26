@@ -16,7 +16,7 @@ const numCPUs = os.cpus().length;
 // In Multi-Core environments, launch worker processes
 if (cluster.isPrimary && process.env.NODE_ENV === 'production') {
   console.log(`⚡ Primary cluster process ${process.pid} is running`);
-  console.log(`🚀 Spawning ${numCPUs} worker processes for 1M user concurrency scale...`);
+  console.log(`🚀 Spawning ${numCPUs} cluster worker processes...`);
 
   for (let i = 0; i < numCPUs; i++) {
     cluster.fork();
@@ -50,7 +50,7 @@ if (cluster.isPrimary && process.env.NODE_ENV === 'production') {
   app.get('/api/health', (req, res) => {
     res.json({
       status: 'ok',
-      service: 'StreamFlix High-Scale Enterprise API',
+      service: 'StreamFlix Node API Prototype',
       workerPid: process.pid,
       cpus: numCPUs,
       cacheStats: cache.getStats(),
@@ -58,14 +58,20 @@ if (cluster.isPrimary && process.env.NODE_ENV === 'production') {
     });
   });
 
-  // 2. Metrics Monitor Endpoint (Prometheus / Dashboard compatible)
+  // 2. Metrics Monitor Endpoint
   app.get('/api/metrics', (req, res) => {
     res.json({
-      activeSimulatedUsers: '1,000,000+',
+      service: 'StreamFlix Node API Prototype',
       workerId: process.pid,
       uptimeSeconds: Math.floor(process.uptime()),
       memoryUsageMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
-      cache: cache.getStats()
+      cache: cache.getStats(),
+      limitations: {
+        cache: 'In-process Map cache (not distributed across workers)',
+        watchParty: 'In-process Map rooms (worker memory local)',
+        myList: 'Worker memory store (inconsistent across cluster workers)',
+        rateLimiter: 'MemoryStore (per process instance)'
+      }
     });
   });
 

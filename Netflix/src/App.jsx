@@ -20,7 +20,10 @@ function MainLayout() {
     selectedCategoryTab,
     selectedGenre,
     setSelectedGenre,
-    currentProfile
+    currentProfile,
+    apiError,
+    myListSyncError,
+    clearMyListSyncError
   } = useApp();
 
   const [showProfileSelector, setShowProfileSelector] = useState(false);
@@ -52,6 +55,48 @@ function MainLayout() {
   return (
     <div className="app-container">
       <Navbar onChangeProfileClick={() => setShowProfileSelector(true)} />
+
+      {/* Sync Error Banner */}
+      {myListSyncError && (
+        <div style={{
+          position: 'fixed',
+          top: 70,
+          right: 20,
+          zIndex: 1000,
+          background: '#E50914',
+          color: 'white',
+          padding: '12px 20px',
+          borderRadius: 8,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          fontSize: 14
+        }}>
+          <span>{myListSyncError}</span>
+          <button
+            onClick={clearMyListSyncError}
+            style={{ background: 'transparent', border: 'none', color: 'white', fontWeight: 800, cursor: 'pointer' }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* API Warning Banner */}
+      {apiError && (
+        <div style={{
+          background: 'rgba(255, 165, 0, 0.15)',
+          borderBottom: '1px solid orange',
+          color: '#FFB84D',
+          padding: '8px 4%',
+          fontSize: 13,
+          textAlign: 'center',
+          marginTop: 68
+        }}>
+          ⚠️ {apiError}
+        </div>
+      )}
 
       {searchQuery ? (
         <Suspense fallback={<div style={{ padding: 100, textAlign: 'center', color: '#AAA' }}>Loading results...</div>}>
@@ -131,7 +176,7 @@ function MainLayout() {
           <span>Cookie Preferences</span>
         </div>
         <div style={{ color: '#555', marginTop: 20 }}>
-          © 2026 StreamFlix, Inc. All rights reserved. Netflix React Client (1M Users Scale Edition).
+          © 2026 StreamFlix, Inc. All rights reserved. StreamFlix Streaming Platform Learning Architecture.
         </div>
       </footer>
 

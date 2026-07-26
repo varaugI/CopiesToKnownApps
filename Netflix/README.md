@@ -1,6 +1,6 @@
 # StreamFlix - Enterprise Netflix Application Ecosystem
 
-A full-stack, enterprise-scalable Netflix application ecosystem engineered with **React 18**, **Angular 18**, and a **Node.js Express REST API Server** designed for **1,000,000+ Active Users**.
+A full-stack streaming platform architecture engineered with **React 18**, **Angular 18**, **Node.js Express REST API**, and **Java 21 / Spring Boot 3**.
 
 ---
 
@@ -14,17 +14,18 @@ A full-stack, enterprise-scalable Netflix application ecosystem engineered with 
 - **Hover Card Expansion**: Video previews, match scores (e.g. 98% Match), age ratings, 4K badges, and instant action buttons on hover.
 - **Detailed Movie/Show Modal**: Comprehensive show overview, season/episode list with duration & thumbnails, and "More Like This" recommendations grid.
 - **Fullscreen Custom Video Player**: Custom controls with scrub seek bar, 10s skip backward/forward, skip intro button, audio & subtitles selector, playback speed controls (0.5x - 2x).
-- **1M Users Scalability**: Dynamic code splitting (`React.lazy` + `Suspense`), component virtual memoization (`React.memo`), and Service Worker asset caching.
+- **Client Performance & State**: Dynamic code splitting (`React.lazy` + `Suspense`), component memoization (`React.memo`), structured state management, and HLS integration.
 
 ### 2. 🅰️ Angular 18 Netflix Client (`/angular-app`)
-- **RxJS Data Services**: Connected to `http://localhost:5000/api` with fallback data handling.
+- **RxJS Data Services**: Connected to backend API endpoints with typed services.
 - **Standalone Components**: Clean, reactive UI with hero banner, category carousels, movie detail modal, search filter, and video player.
 
-### 3. ⚡ High-Scale Node.js Express REST API (`/server`)
-- **Sub-Millisecond Cache Layer**: In-memory cache for catalog queries, search queries, profiles, and featured titles.
-- **DDoS & Rate Limiting**: Protection middleware for API & search endpoints.
-- **HTTP Chunked Range Video Streaming**: Low-latency partial media streaming (`206 Partial Content`) serving 1MB chunks.
-- **Node.js Worker Clustering**: Multi-core CPU auto-scaling across worker threads.
+### 3. ⚡ Node.js Express REST API (`/server` - Legacy Prototype)
+- **Prototype Cache Layer**: In-memory cache (Phase 6 target: Redis distributed cache).
+- **Rate Limiting**: Sliding-window rate limiters.
+- **Simulated Video Endpoint**: HTTP Range response header verification (Phase 5 target: MinIO + FFmpeg HLS pipeline).
+- **Node.js Cluster Prototype**: Multi-core worker process fork.
+
 - **HTTP Compression & Security**: Gzip/Brotli response compression (`compression`) and `helmet` security headers.
 
 ---

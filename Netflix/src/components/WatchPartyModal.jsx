@@ -1,26 +1,29 @@
 import React, { useState } from 'react';
-import { X, Users, Copy, Check } from 'lucide-react';
+import { X, Users, Copy, Check, AlertCircle } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export default function WatchPartyModal({ movie, onClose, onJoinRoom }) {
-  const { currentProfile } = useApp();
+  const { currentProfile, apiBaseUrl } = useApp();
   const [activeTab, setActiveTab] = useState('create');
   const [joinRoomCode, setJoinRoomCode] = useState('');
   const [createdRoom, setCreatedRoom] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [error, setError] = useState(null);
 
   const handleCreateRoom = async () => {
+    setError(null);
     try {
-      const res = await fetch('http://localhost:5000/api/watchparty/create', {
+      const res = await fetch(`${apiBaseUrl}/watchparty/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ hostName: currentProfile.name, movieId: movie.id })
       });
+      if (!res.ok) throw new Error(`Server returned HTTP ${res.status}`);
       const room = await res.json();
       setCreatedRoom(room);
     } catch (e) {
-      // Fallback
-      setCreatedRoom({ id: '849201', hostName: currentProfile.name });
+      console.error('Failed to create watch party room:', e);
+      setError(`Failed to create watch party room (${e.message}). Backend service may be unreachable.`);
     }
   };
 
@@ -33,22 +36,27 @@ export default function WatchPartyModal({ movie, onClose, onJoinRoom }) {
   };
 
   const handleJoin = async () => {
-    if (joinRoomCode.trim()) {
-      try {
-        const res = await fetch('http://localhost:5000/api/watchparty/join', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ roomId: joinRoomCode, userName: currentProfile.name })
-        });
-        const room = await res.json();
-        if (room && !room.error) {
-          onJoinRoom(room);
-        } else {
-          alert('Room not found!');
-        }
-      } catch (e) {
-        onJoinRoom({ id: joinRoomCode, hostName: 'Host' });
+    if (!joinRoomCode.trim()) return;
+    setError(null);
+    try {
+      const res = await fetch(`${apiBaseUrl}/watchparty/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomId: joinRoomCode.trim(), userName: currentProfile.name })
+      });
+      if (!res.ok) {
+        if (res.status === 404) throw new Error('Watch party room not found');
+        throw new Error(`Server returned HTTP ${res.status}`);
       }
+      const room = await res.json();
+      if (room && !room.error) {
+        onJoinRoom(room);
+      } else {
+        setError(room.error || 'Watch party room not found.');
+      }
+    } catch (e) {
+      console.error('Failed to join watch party room:', e);
+      setError(e.message || 'Failed to join watch party room. Please check the room code.');
     }
   };
 
@@ -64,6 +72,24 @@ export default function WatchPartyModal({ movie, onClose, onJoinRoom }) {
           <h2 style={{ fontSize: '1.4rem', fontWeight: 800 }}>Watch Party - Stream Together</h2>
         </div>
 
+        {error && (
+          <div style={{
+            background: 'rgba(229, 9, 20, 0.2)',
+            border: '1px solid #E50914',
+            color: '#FF8888',
+            padding: '10px 14px',
+            borderRadius: 6,
+            fontSize: 13,
+            marginBottom: 16,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8
+          }}>
+            <AlertCircle size={16} />
+            <span>{error}</span>
+          </div>
+        )}
+
         <div style={{ display: 'flex', borderBottom: '1px solid #333', marginBottom: 20 }}>
           <button
             style={{
@@ -76,7 +102,7 @@ export default function WatchPartyModal({ movie, onClose, onJoinRoom }) {
               fontWeight: 700,
               cursor: 'pointer'
             }}
-            onClick={() => setActiveTab('create')}
+            onClick={() => { setActiveTab('create'); setError(null); }}
           >
             Host a Party
           </button>
@@ -91,7 +117,7 @@ export default function WatchPartyModal({ movie, onClose, onJoinRoom }) {
               fontWeight: 700,
               cursor: 'pointer'
             }}
-            onClick={() => setActiveTab('join')}
+            onClick={() => { setActiveTab('join'); setError(null); }}
           >
             Join with Code
           </button>
