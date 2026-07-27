@@ -1,14 +1,18 @@
 import React, { useState } from "react";
 import { X, Search as SearchIcon } from "lucide-react";
-import { useApp } from "../../context/AppContext";
+import { useNavigate } from "react-router-dom";
+import { useMessaging } from "../../context/messaging-context";
+import { useUi } from "../../context/ui-context";
 
 export const SearchDrawer = () => {
-  const { isSearchDrawerOpen, setIsSearchDrawerOpen, chats, setActiveView } = useApp();
+  const { isSearchDrawerOpen, setIsSearchDrawerOpen } = useUi();
+  const { chats } = useMessaging();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
 
   if (!isSearchDrawerOpen) return null;
 
-  const users = chats.map((c) => c.user);
+  const users = chats.map((chat) => ({ ...chat.user, conversationId: chat.id }));
   const filteredUsers = users.filter(
     (u) =>
       u.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -95,7 +99,7 @@ export const SearchDrawer = () => {
               key={u.id}
               onClick={() => {
                 setIsSearchDrawerOpen(false);
-                setActiveView("messages");
+                navigate(`/direct/${u.conversationId}`);
               }}
               style={{
                 display: "flex",

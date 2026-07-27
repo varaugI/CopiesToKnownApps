@@ -1,5 +1,6 @@
 package com.streamflix.modules.userstate.service;
 
+import com.streamflix.common.event.WatchProgressCompletedEvent;
 import com.streamflix.common.exception.ResourceNotFoundException;
 import com.streamflix.modules.catalog.repository.TitleRepository;
 import com.streamflix.modules.profiles.repository.ProfileRepository;
@@ -7,6 +8,7 @@ import com.streamflix.modules.userstate.domain.WatchProgress;
 import com.streamflix.modules.userstate.dto.UpdateProgressRequest;
 import com.streamflix.modules.userstate.dto.WatchProgressDto;
 import com.streamflix.modules.userstate.repository.WatchProgressRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -21,15 +23,18 @@ public class WatchProgressService {
     private final WatchProgressRepository watchProgressRepository;
     private final ProfileRepository profileRepository;
     private final TitleRepository titleRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     public WatchProgressService(
             WatchProgressRepository watchProgressRepository,
             ProfileRepository profileRepository,
-            TitleRepository titleRepository
+            TitleRepository titleRepository,
+            ApplicationEventPublisher eventPublisher
     ) {
         this.watchProgressRepository = watchProgressRepository;
         this.profileRepository = profileRepository;
         this.titleRepository = titleRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -51,6 +56,11 @@ public class WatchProgressService {
         progress.setLastWatchedAt(Instant.now());
 
         WatchProgress saved = watchProgressRepository.save(progress);
+
+        if (isCompleted && eventPublisher != null) {
+            eventPublisher.publishEvent(new WatchProgressCompletedEvent(profileId, request.getTitleId(), Instant.now()));
+        }
+
         return new WatchProgressDto(saved);
     }
 

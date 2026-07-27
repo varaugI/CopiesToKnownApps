@@ -1,14 +1,11 @@
 import React from "react";
 import { X } from "lucide-react";
-import { useApp } from "../../context/AppContext";
+import { useNotifications } from "../../context/notifications-context";
+import { useUi } from "../../context/ui-context";
 
 export const NotificationsDrawer = () => {
-  const {
-    isNotificationsDrawerOpen,
-    setIsNotificationsDrawerOpen,
-    notifications,
-    markAllNotificationsRead
-  } = useApp();
+  const { isNotificationsDrawerOpen, setIsNotificationsDrawerOpen } = useUi();
+  const { notifications, markAllNotificationsRead } = useNotifications();
 
   if (!isNotificationsDrawerOpen) return null;
 

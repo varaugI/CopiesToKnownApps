@@ -1,9 +1,11 @@
 import React, { useState } from "react";
-import { X, Search, Link as LinkIcon, Check, Send } from "lucide-react";
-import { useApp } from "../../context/AppContext";
+import { X, Search, Link as LinkIcon, Check } from "lucide-react";
+import { useMessaging } from "../../context/messaging-context";
+import { useUi } from "../../context/ui-context";
 
 export const ShareModal = () => {
-  const { activeShareModalPost, setActiveShareModalPost, chats, sendChatMessage } = useApp();
+  const { activeShareModalPost, setActiveShareModalPost } = useUi();
+  const { chats, sendChatMessage } = useMessaging();
   const [copied, setCopied] = useState(false);
   const [selectedChats, setSelectedChats] = useState([]);
 

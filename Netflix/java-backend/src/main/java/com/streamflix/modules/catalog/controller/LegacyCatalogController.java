@@ -3,6 +3,7 @@ package com.streamflix.modules.catalog.controller;
 import com.streamflix.modules.catalog.dto.GenreDto;
 import com.streamflix.modules.catalog.dto.TitleDto;
 import com.streamflix.modules.catalog.service.CatalogService;
+import com.streamflix.modules.search.service.SearchService;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,9 +15,11 @@ import java.util.List;
 public class LegacyCatalogController {
 
     private final CatalogService catalogService;
+    private final SearchService searchService;
 
-    public LegacyCatalogController(CatalogService catalogService) {
+    public LegacyCatalogController(CatalogService catalogService, SearchService searchService) {
         this.catalogService = catalogService;
+        this.searchService = searchService;
     }
 
     @GetMapping("/movies")
@@ -40,8 +43,8 @@ public class LegacyCatalogController {
     }
 
     @GetMapping("/search")
-    public ResponseEntity<List<TitleDto>> searchMovies(@RequestParam String q) {
-        List<TitleDto> titles = catalogService.getTitles(null, null, q, PageRequest.of(0, 50)).getContent();
+    public ResponseEntity<List<TitleDto>> searchMovies(@RequestParam(required = false, defaultValue = "") String q) {
+        List<TitleDto> titles = searchService.searchCatalog(q, PageRequest.of(0, 50)).getContent();
         return ResponseEntity.ok(titles);
     }
 }

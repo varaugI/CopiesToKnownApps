@@ -1,9 +1,9 @@
 import React from "react";
 import { X } from "lucide-react";
-import { useApp } from "../../context/AppContext";
+import { useUi } from "../../context/ui-context";
 
 export const LikesModal = () => {
-  const { activeLikesModalPost, setActiveLikesModalPost } = useApp();
+  const { activeLikesModalPost, setActiveLikesModalPost } = useUi();
 
   if (!activeLikesModalPost) return null;
 

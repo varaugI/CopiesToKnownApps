@@ -1,28 +1,27 @@
 import React from "react";
 import { Heart, MessageCircle, Film } from "lucide-react";
-import { useApp } from "../../context/AppContext";
+import { useLocation, useNavigate } from "react-router-dom";
+import { usePosts } from "../../context/posts-context";
 
 export const Explore = () => {
-  const { explorePosts, setActiveDetailPost, posts } = useApp();
+  const { explorePosts, posts } = usePosts();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  // Combine default explore posts and feed posts for rich grid
   const allGridPosts = [
-    ...posts.map((p) => ({
-      id: p.id,
-      image: p.images[0],
-      likes: p.likesCount,
-      comments: p.comments.length,
-      type: "photo",
-      fullPost: p
+    ...posts.map((post) => ({
+      id: post.id,
+      image: post.images[0],
+      likes: post.likesCount,
+      comments: post.comments.length,
+      type: "photo"
     })),
-    ...explorePosts.map((e) => ({
-      id: e.id,
-      image: e.image,
-      likes: e.likes,
-      comments: e.comments,
-      type: e.type
-    }))
+    ...explorePosts
   ];
+
+  const openPost = (postId) => {
+    navigate(`/p/${postId}`, { state: { backgroundPath: location.pathname } });
+  };
 
   return (
     <div style={{ display: "flex", justifyContent: "center", width: "100%" }}>
@@ -31,27 +30,18 @@ export const Explore = () => {
           <div
             key={item.id}
             className="explore-item"
-            onClick={() => {
-              if (item.fullPost) {
-                setActiveDetailPost(item.fullPost);
-              } else {
-                setActiveDetailPost({
-                  id: item.id,
-                  user: { username: "explore_creator", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" },
-                  images: [item.image],
-                  caption: "Featured on Explore feed ✨ #instagram #explore",
-                  likesCount: item.likes,
-                  isLiked: false,
-                  isSaved: false,
-                  timestamp: "EXPLORE",
-                  comments: []
-                });
+            role="link"
+            tabIndex={0}
+            onClick={() => openPost(item.id)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                openPost(item.id);
               }
             }}
           >
             <img src={item.image} alt="Explore item" className="explore-media" />
 
-            {/* Hover overlay stats */}
             <div className="explore-overlay">
               <div className="explore-stat">
                 <Heart size={20} fill="white" />
@@ -63,7 +53,6 @@ export const Explore = () => {
               </div>
             </div>
 
-            {/* Type Icon Badge */}
             {item.type === "reel" && (
               <div
                 style={{
@@ -71,7 +60,7 @@ export const Explore = () => {
                   top: 10,
                   right: 10,
                   color: "white",
-                  dropShadow: "0 2px 4px rgba(0,0,0,0.5)"
+                  filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.5))"
                 }}
               >
                 <Film size={20} />

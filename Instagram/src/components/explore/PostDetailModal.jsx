@@ -8,20 +8,34 @@ import {
   Smile,
   MoreHorizontal
 } from "lucide-react";
-import { useApp } from "../../context/AppContext";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { Dialog } from "../common/Dialog";
+import { usePosts } from "../../context/posts-context";
 
 export const PostDetailModal = () => {
+  const { postId = "" } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
   const {
-    activeDetailPost,
-    setActiveDetailPost,
     toggleLikePost,
     toggleSavePost,
     addComment,
-    toggleLikeComment
-  } = useApp();
+    toggleLikeComment,
+    getPostById
+  } = usePosts();
+  const activeDetailPost = getPostById(postId);
   const [commentText, setCommentText] = useState("");
 
   if (!activeDetailPost) return null;
+
+  const close = () => {
+    const state = location.state;
+    const backgroundPath =
+      state && typeof state === "object" && "backgroundPath" in state
+        ? state.backgroundPath
+        : "/";
+    navigate(typeof backgroundPath === "string" ? backgroundPath : "/", { replace: true });
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -32,13 +46,28 @@ export const PostDetailModal = () => {
   };
 
   return (
-    <div className="modal-overlay" onClick={() => setActiveDetailPost(null)}>
+    <Dialog
+      open
+      onClose={close}
+      ariaLabel={`Post by ${activeDetailPost.user.username}`}
+      panelStyle={{
+        maxWidth: 950,
+        width: "90%",
+        height: "85vh",
+        display: "flex",
+        flexDirection: "row",
+        borderRadius: 12,
+        position: "relative"
+      }}
+    >
       <button
-        onClick={() => setActiveDetailPost(null)}
+        type="button"
+        aria-label="Close post"
+        onClick={close}
         style={{
           position: "absolute",
-          top: 20,
-          right: 20,
+          top: 8,
+          right: 8,
           background: "none",
           border: "none",
           color: "white",
@@ -49,18 +78,6 @@ export const PostDetailModal = () => {
         <X size={32} />
       </button>
 
-      <div
-        className="modal-card"
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          maxWidth: 950,
-          width: "90%",
-          height: "85vh",
-          display: "flex",
-          flexDirection: "row",
-          borderRadius: 12
-        }}
-      >
         {/* Left Side: Media */}
         <div
           style={{
@@ -235,7 +252,6 @@ export const PostDetailModal = () => {
             </button>
           </form>
         </div>
-      </div>
-    </div>
+    </Dialog>
   );
 };

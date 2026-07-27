@@ -1,6 +1,9 @@
 import React, { useState } from "react";
-import { X, Image as ImageIcon, MapPin, Smile, ArrowLeft, Check } from "lucide-react";
-import { useApp } from "../../context/AppContext";
+import { X, Image as ImageIcon, MapPin, ArrowLeft } from "lucide-react";
+import { Dialog } from "../common/Dialog";
+import { usePosts } from "../../context/posts-context";
+import { useProfile } from "../../context/profile-context";
+import { useUi } from "../../context/ui-context";
 
 const FILTERS = [
   { name: "Normal", filter: "none" },
@@ -14,7 +17,9 @@ const FILTERS = [
 ];
 
 export const CreatePostModal = () => {
-  const { isCreateModalOpen, setIsCreateModalOpen, createPost, user } = useApp();
+  const { isCreateModalOpen, setIsCreateModalOpen } = useUi();
+  const { createPost } = usePosts();
+  const { user } = useProfile();
 
   const [selectedImage, setSelectedImage] = useState(
     "https://images.unsplash.com/photo-1518770660439-4636190af475?w=1000&auto=format&fit=crop&q=80"
@@ -23,8 +28,6 @@ export const CreatePostModal = () => {
   const [caption, setCaption] = useState("");
   const [location, setLocation] = useState("");
   const [step, setStep] = useState(1); // 1: Pick/Upload, 2: Filter & Caption
-
-  if (!isCreateModalOpen) return null;
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
@@ -57,12 +60,12 @@ export const CreatePostModal = () => {
   };
 
   return (
-    <div className="modal-overlay" onClick={handleClose}>
-      <div
-        className="modal-card"
-        onClick={(e) => e.stopPropagation()}
-        style={{ maxWidth: step === 2 ? 800 : 500, transition: "var(--transition-smooth)" }}
-      >
+    <Dialog
+      open={isCreateModalOpen}
+      onClose={handleClose}
+      ariaLabel="Create new post"
+      panelStyle={{ maxWidth: step === 2 ? 800 : 500, transition: "var(--transition-smooth)" }}
+    >
         {/* Header */}
         <header
           style={{
@@ -321,7 +324,6 @@ export const CreatePostModal = () => {
             </div>
           </div>
         )}
-      </div>
-    </div>
+    </Dialog>
   );
 };

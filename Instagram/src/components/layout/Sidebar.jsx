@@ -8,128 +8,130 @@ import {
   Heart,
   PlusSquare,
   Sun,
-  Moon,
-  Menu
+  Moon
 } from "lucide-react";
-import { useApp } from "../../context/AppContext";
-import { InstagramLogo } from "../common/InstagramLogo";
+import { Link, NavLink } from "react-router-dom";
+import { useNotifications } from "../../context/notifications-context";
+import { useProfile } from "../../context/profile-context";
+import { useUi } from "../../context/ui-context";
+import { PhotoFlowLogo } from "../common/PhotoFlowLogo";
 
 export const Sidebar = () => {
   const {
-    activeView,
-    setActiveView,
-    user,
     theme,
     toggleTheme,
-    unreadNotificationsCount,
     setIsCreateModalOpen,
     isSearchDrawerOpen,
     setIsSearchDrawerOpen,
     isNotificationsDrawerOpen,
     setIsNotificationsDrawerOpen
-  } = useApp();
+  } = useUi();
+  const { user } = useProfile();
+  const { unreadNotificationsCount } = useNotifications();
 
-  const handleNavClick = (viewName) => {
-    if (viewName === "search") {
-      setIsSearchDrawerOpen(!isSearchDrawerOpen);
-      setIsNotificationsDrawerOpen(false);
-      return;
-    }
-    if (viewName === "notifications") {
-      setIsNotificationsDrawerOpen(!isNotificationsDrawerOpen);
-      setIsSearchDrawerOpen(false);
-      return;
-    }
-    if (viewName === "create") {
-      setIsCreateModalOpen(true);
-      return;
-    }
-
+  const closeDrawers = () => {
     setIsSearchDrawerOpen(false);
     setIsNotificationsDrawerOpen(false);
-    setActiveView(viewName);
+  };
+
+  const toggleSearch = () => {
+    setIsSearchDrawerOpen(!isSearchDrawerOpen);
+    setIsNotificationsDrawerOpen(false);
+  };
+
+  const toggleNotifications = () => {
+    setIsNotificationsDrawerOpen(!isNotificationsDrawerOpen);
+    setIsSearchDrawerOpen(false);
   };
 
   return (
     <aside className="sidebar">
       <div>
-        <div className="sidebar-logo" onClick={() => handleNavClick("home")}>
-          <InstagramLogo size={28} />
-          <span className="logo-text">Instagram</span>
-        </div>
+        <Link className="sidebar-logo" to="/" onClick={closeDrawers}>
+          <PhotoFlowLogo size={28} />
+          <span className="logo-text">PhotoFlow</span>
+        </Link>
 
-        <nav className="nav-list">
-          <div
-            className={`nav-item ${activeView === "home" ? "active" : ""}`}
-            onClick={() => handleNavClick("home")}
+        <nav className="nav-list" aria-label="Primary navigation">
+          <NavLink
+            className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
+            to="/"
+            end
+            onClick={closeDrawers}
           >
             <Home size={24} />
             <span className="nav-text">Home</span>
-          </div>
+          </NavLink>
 
-          <div
+          <button
+            type="button"
             className={`nav-item ${isSearchDrawerOpen ? "active" : ""}`}
-            onClick={() => handleNavClick("search")}
+            onClick={toggleSearch}
           >
             <Search size={24} />
             <span className="nav-text">Search</span>
-          </div>
+          </button>
 
-          <div
-            className={`nav-item ${activeView === "explore" ? "active" : ""}`}
-            onClick={() => handleNavClick("explore")}
+          <NavLink
+            className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
+            to="/explore"
+            onClick={closeDrawers}
           >
             <Compass size={24} />
             <span className="nav-text">Explore</span>
-          </div>
+          </NavLink>
 
-          <div
-            className={`nav-item ${activeView === "reels" ? "active" : ""}`}
-            onClick={() => handleNavClick("reels")}
+          <NavLink
+            className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
+            to="/reels"
+            onClick={closeDrawers}
           >
             <Film size={24} />
             <span className="nav-text">Reels</span>
-          </div>
+          </NavLink>
 
-          <div
-            className={`nav-item ${activeView === "messages" ? "active" : ""}`}
-            onClick={() => handleNavClick("messages")}
+          <NavLink
+            className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
+            to="/direct"
+            onClick={closeDrawers}
           >
             <MessageCircle size={24} />
             <span className="nav-text">Messages</span>
-          </div>
+          </NavLink>
 
-          <div
+          <button
+            type="button"
             className={`nav-item ${isNotificationsDrawerOpen ? "active" : ""}`}
-            onClick={() => handleNavClick("notifications")}
+            onClick={toggleNotifications}
           >
             <Heart size={24} />
             {unreadNotificationsCount > 0 && (
               <span className="nav-badge">{unreadNotificationsCount}</span>
             )}
             <span className="nav-text">Notifications</span>
-          </div>
+          </button>
 
-          <div className="nav-item" onClick={() => handleNavClick("create")}>
+          <button type="button" className="nav-item" onClick={() => setIsCreateModalOpen(true)}>
             <PlusSquare size={24} />
             <span className="nav-text">Create</span>
-          </div>
+          </button>
 
-          <div
-            className={`nav-item ${activeView === "profile" ? "active" : ""}`}
-            onClick={() => handleNavClick("profile")}
+          <NavLink
+            className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
+            to={`/${user.username}`}
+            onClick={closeDrawers}
           >
-            <img src={user.avatar} alt={user.username} className="nav-avatar" />
+            <img src={user.avatar} alt="" className="nav-avatar" />
             <span className="nav-text">Profile</span>
-          </div>
+          </NavLink>
         </nav>
       </div>
 
       <div className="nav-list">
-        <div className="nav-item" onClick={toggleTheme}>
+        <button type="button" className="nav-item" onClick={toggleTheme}>
           {theme === "dark" ? <Sun size={24} /> : <Moon size={24} />}
           <span className="more-text">Switch Mode</span>
-        </div>
+        </button>
       </div>
     </aside>
   );

@@ -1,19 +1,25 @@
 import React from "react";
 import { Heart, MessageCircle } from "lucide-react";
-import { useApp } from "../../context/AppContext";
-import { InstagramLogo } from "../common/InstagramLogo";
+import { Link } from "react-router-dom";
+import { useNotifications } from "../../context/notifications-context";
+import { useUi } from "../../context/ui-context";
+import { PhotoFlowLogo } from "../common/PhotoFlowLogo";
 
 export const Header = () => {
-  const { setActiveView, unreadNotificationsCount, setIsNotificationsDrawerOpen } = useApp();
+  const { unreadNotificationsCount } = useNotifications();
+  const { setIsNotificationsDrawerOpen } = useUi();
 
   return (
     <header className="mobile-header">
-      <div className="sidebar-logo" onClick={() => setActiveView("home")} style={{ padding: 0, margin: 0 }}>
-        <InstagramLogo size={24} />
-        <span className="logo-text" style={{ fontSize: "1.8rem" }}>Instagram</span>
-      </div>
+      <Link className="sidebar-logo" to="/" style={{ padding: 0, margin: 0 }}>
+        <PhotoFlowLogo size={24} />
+        <span className="logo-text" style={{ fontSize: "1.8rem" }}>PhotoFlow</span>
+      </Link>
       <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
-        <div
+        <button
+          type="button"
+          aria-label="Open notifications"
+          className="action-btn"
           style={{ position: "relative", cursor: "pointer" }}
           onClick={() => setIsNotificationsDrawerOpen(true)}
         >
@@ -23,10 +29,10 @@ export const Header = () => {
               {unreadNotificationsCount}
             </span>
           )}
-        </div>
-        <div style={{ cursor: "pointer" }} onClick={() => setActiveView("messages")}>
+        </button>
+        <Link aria-label="Open messages" className="action-btn" to="/direct">
           <MessageCircle size={24} />
-        </div>
+        </Link>
       </div>
     </header>
   );

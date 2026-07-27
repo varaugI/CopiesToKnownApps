@@ -1,65 +1,115 @@
-import React, { useState, useEffect } from "react";
-import { X, ChevronLeft, ChevronRight, Heart, Send, Pause, Play } from "lucide-react";
-import { useApp } from "../../context/AppContext";
+import React, { useCallback, useState, useEffect } from "react";
+import { X, Heart, Send, Pause, Play } from "lucide-react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useStories } from "../../context/stories-context";
+
+const EMPTY_STORIES = [];
 
 export const StoryViewer = () => {
-  const { activeStoryGroup, setActiveStoryGroup, markStoryAsSeen, stories } = useApp();
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const { username = "", storyId = "" } = useParams();
+  const { findStoryGroup, markStoryAsSeen, stories } = useStories();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [isPaused, setIsPaused] = useState(false);
   const [replyText, setReplyText] = useState("");
   const [isReacted, setIsReacted] = useState(false);
+  const activeStoryGroup = findStoryGroup(username);
+  const currentStoriesList = activeStoryGroup?.stories || EMPTY_STORIES;
+  const currentIndex = currentStoriesList.findIndex((story) => story.id === storyId);
+  const currentStory = currentIndex >= 0 ? currentStoriesList[currentIndex] : undefined;
 
   useEffect(() => {
     if (activeStoryGroup) {
       markStoryAsSeen(activeStoryGroup.id);
-      setCurrentIndex(0);
-      setIsReacted(false);
     }
-  }, [activeStoryGroup]);
+  }, [activeStoryGroup, markStoryAsSeen]);
+
+  useEffect(() => {
+    setIsReacted(false);
+    setReplyText("");
+  }, [storyId]);
+
+  const close = useCallback(() => {
+    const state = location.state;
+    const backgroundPath =
+      state && typeof state === "object" && "backgroundPath" in state
+        ? state.backgroundPath
+        : "/";
+    navigate(typeof backgroundPath === "string" ? backgroundPath : "/", { replace: true });
+  }, [location.state, navigate]);
+
+  const handleNext = useCallback(() => {
+    if (!activeStoryGroup) return;
+    if (currentIndex < currentStoriesList.length - 1) {
+      const nextStory = currentStoriesList[currentIndex + 1];
+      if (nextStory) {
+        navigate(`/stories/${activeStoryGroup.user.username}/${nextStory.id}`, {
+          replace: true,
+          state: location.state
+        });
+      }
+    } else {
+      const currentGroupIndex = stories.findIndex((g) => g.id === activeStoryGroup.id);
+      if (currentGroupIndex < stories.length - 1) {
+        const nextGroup = stories[currentGroupIndex + 1];
+        const nextStory = nextGroup?.stories[0];
+        if (nextGroup && nextStory) {
+          navigate(`/stories/${nextGroup.user.username}/${nextStory.id}`, {
+            replace: true,
+            state: location.state
+          });
+        }
+      } else {
+        close();
+      }
+    }
+  }, [activeStoryGroup, close, currentIndex, currentStoriesList, location.state, navigate, stories]);
+
+  useEffect(() => {
+    if (!currentStory || isPaused) return undefined;
+    const timer = setTimeout(handleNext, 5000);
+    return () => clearTimeout(timer);
+  }, [currentStory, handleNext, isPaused]);
 
   if (!activeStoryGroup) return null;
 
-  const currentStoriesList = activeStoryGroup.stories || [];
-  const currentStory = currentStoriesList[currentIndex];
-
-  useEffect(() => {
-    if (!currentStory || isPaused) return;
-    const timer = setTimeout(() => {
-      handleNext();
-    }, 5000);
-    return () => clearTimeout(timer);
-  }, [currentIndex, isPaused, activeStoryGroup]);
-
-  const handleNext = () => {
-    if (currentIndex < currentStoriesList.length - 1) {
-      setCurrentIndex((prev) => prev + 1);
-    } else {
-      // Find next story group
-      const currentGroupIndex = stories.findIndex((g) => g.id === activeStoryGroup.id);
-      if (currentGroupIndex < stories.length - 1) {
-        setActiveStoryGroup(stories[currentGroupIndex + 1]);
-      } else {
-        setActiveStoryGroup(null);
-      }
-    }
-  };
-
   const handlePrev = () => {
     if (currentIndex > 0) {
-      setCurrentIndex((prev) => prev - 1);
+      const previousStory = currentStoriesList[currentIndex - 1];
+      if (previousStory) {
+        navigate(`/stories/${activeStoryGroup.user.username}/${previousStory.id}`, {
+          replace: true,
+          state: location.state
+        });
+      }
     } else {
       const currentGroupIndex = stories.findIndex((g) => g.id === activeStoryGroup.id);
       if (currentGroupIndex > 0) {
-        setActiveStoryGroup(stories[currentGroupIndex - 1]);
+        const previousGroup = stories[currentGroupIndex - 1];
+        const previousStory = previousGroup?.stories.at(-1);
+        if (previousGroup && previousStory) {
+          navigate(`/stories/${previousGroup.user.username}/${previousStory.id}`, {
+            replace: true,
+            state: location.state
+          });
+        }
       }
     }
   };
 
   return (
-    <div className="modal-overlay" style={{ backgroundColor: "rgba(0,0,0,0.92)", zIndex: 2000 }}>
+    <div
+      className="modal-overlay"
+      role="dialog"
+      aria-label="Story viewer"
+      aria-modal="true"
+      style={{ backgroundColor: "rgba(0,0,0,0.92)", zIndex: 2000 }}
+    >
       {/* Close button */}
       <button
-        onClick={() => setActiveStoryGroup(null)}
+        type="button"
+        aria-label="Close story viewer"
+        onClick={close}
         style={{
           position: "absolute",
           top: 20,
@@ -154,6 +204,8 @@ export const StoryViewer = () => {
           </div>
 
           <button
+            type="button"
+            aria-label={isPaused ? "Play story" : "Pause story"}
             onClick={() => setIsPaused(!isPaused)}
             style={{ background: "none", border: "none", color: "white", cursor: "pointer" }}
           >
@@ -194,6 +246,8 @@ export const StoryViewer = () => {
 
           {/* Nav Click Areas */}
           <button
+            type="button"
+            aria-label="Previous story"
             onClick={handlePrev}
             style={{
               position: "absolute",
@@ -207,6 +261,8 @@ export const StoryViewer = () => {
             }}
           />
           <button
+            type="button"
+            aria-label="Next story"
             onClick={handleNext}
             style={{
               position: "absolute",
@@ -234,6 +290,7 @@ export const StoryViewer = () => {
         >
           <input
             type="text"
+            aria-label={`Reply to ${activeStoryGroup.user.username}`}
             placeholder={`Reply to ${activeStoryGroup.user.username}...`}
             value={replyText}
             onChange={(e) => setReplyText(e.target.value)}
@@ -249,12 +306,16 @@ export const StoryViewer = () => {
             }}
           />
           <button
+            type="button"
+            aria-label={isReacted ? "Remove story reaction" : "React to story"}
             onClick={() => setIsReacted(!isReacted)}
             style={{ background: "none", border: "none", cursor: "pointer", color: isReacted ? "#ff3040" : "white" }}
           >
             <Heart size={26} fill={isReacted ? "#ff3040" : "none"} />
           </button>
           <button
+            type="button"
+            aria-label="Send story reply"
             onClick={() => {
               if (replyText.trim()) setReplyText("");
             }}

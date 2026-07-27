@@ -7,16 +7,21 @@ import {
   Smile,
   Info,
   Phone,
-  Video,
-  ChevronLeft
+  Video
 } from "lucide-react";
-import { useApp } from "../../context/AppContext";
+import { useNavigate, useParams } from "react-router-dom";
+import { useMessaging } from "../../context/messaging-context";
+import { useProfile } from "../../context/profile-context";
 
 export const DirectMessages = () => {
-  const { chats, activeChatId, setActiveChatId, sendChatMessage, user } = useApp();
+  const { chats, sendChatMessage } = useMessaging();
+  const { user } = useProfile();
+  const { conversationId } = useParams();
+  const navigate = useNavigate();
   const [inputText, setInputText] = useState("");
   const [activeTab, setActiveTab] = useState("primary");
 
+  const activeChatId = conversationId || chats[0]?.id;
   const activeChat = chats.find((c) => c.id === activeChatId) || chats[0];
 
   const handleSend = (e) => {
@@ -80,7 +85,7 @@ export const DirectMessages = () => {
               return (
                 <div
                   key={c.id}
-                  onClick={() => setActiveChatId(c.id)}
+                  onClick={() => navigate(`/direct/${c.id}`)}
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -187,7 +192,7 @@ export const DirectMessages = () => {
                     style={{ width: 80, height: 80, borderRadius: "50%", objectFit: "cover", marginBottom: 12 }}
                   />
                   <h3 style={{ fontWeight: 700, fontSize: "1.1rem" }}>{activeChat.user.name}</h3>
-                  <span style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>{activeChat.user.username} · Instagram</span>
+                  <span style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>{activeChat.user.username} · PhotoFlow</span>
                   <button
                     className="btn-secondary"
                     style={{ marginTop: 12 }}

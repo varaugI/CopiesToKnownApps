@@ -7,13 +7,14 @@ import {
   MoreVertical,
   Volume2,
   VolumeX,
-  Music,
-  Check
+  Music
 } from "lucide-react";
-import { useApp } from "../../context/AppContext";
+import { useReels } from "../../context/reels-context";
+import { useUi } from "../../context/ui-context";
 
 export const Reels = () => {
-  const { reels, toggleLikeReel, toggleSaveReel, setActiveShareModalPost } = useApp();
+  const { reels, toggleLikeReel, toggleSaveReel } = useReels();
+  const { setActiveShareModalPost } = useUi();
   const [isMuted, setIsMuted] = useState(true);
 
   return (

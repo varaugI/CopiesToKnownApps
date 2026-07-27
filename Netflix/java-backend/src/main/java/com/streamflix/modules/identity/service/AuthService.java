@@ -1,5 +1,6 @@
 package com.streamflix.modules.identity.service;
 
+import com.streamflix.common.event.UserRegisteredEvent;
 import com.streamflix.common.exception.BusinessValidationException;
 import com.streamflix.common.exception.ResourceNotFoundException;
 import com.streamflix.config.StreamFlixProperties;
@@ -13,6 +14,7 @@ import com.streamflix.modules.identity.repository.AccountRepository;
 import com.streamflix.modules.identity.repository.RefreshSessionRepository;
 import com.streamflix.modules.profiles.domain.Profile;
 import com.streamflix.modules.profiles.repository.ProfileRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +30,7 @@ public class AuthService {
     private final PasswordService passwordService;
     private final JwtTokenService jwtTokenService;
     private final StreamFlixProperties properties;
+    private final ApplicationEventPublisher eventPublisher;
 
     public AuthService(
             AccountRepository accountRepository,
@@ -35,7 +38,8 @@ public class AuthService {
             ProfileRepository profileRepository,
             PasswordService passwordService,
             JwtTokenService jwtTokenService,
-            StreamFlixProperties properties
+            StreamFlixProperties properties,
+            ApplicationEventPublisher eventPublisher
     ) {
         this.accountRepository = accountRepository;
         this.refreshSessionRepository = refreshSessionRepository;
@@ -43,6 +47,7 @@ public class AuthService {
         this.passwordService = passwordService;
         this.jwtTokenService = jwtTokenService;
         this.properties = properties;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -67,6 +72,10 @@ public class AuthService {
                 null
         );
         profileRepository.save(defaultProfile);
+
+        if (eventPublisher != null) {
+            eventPublisher.publishEvent(new UserRegisteredEvent(savedAccount.getId(), savedAccount.getEmail(), Instant.now()));
+        }
 
         return createAuthResult(savedAccount, userAgent, ipAddress);
     }
@@ -99,7 +108,6 @@ public class AuthService {
                 .orElseThrow(() -> new BusinessValidationException("Invalid refresh session"));
 
         if (session.isRevoked()) {
-            // Security reuse detection: revoke all sessions for this account
             refreshSessionRepository.revokeAllForAccount(session.getAccountId());
             throw new BusinessValidationException("Revoked session reuse detected");
         }
@@ -110,7 +118,6 @@ public class AuthService {
             throw new BusinessValidationException("Refresh session expired");
         }
 
-        // Token Rotation: Revoke current session and issue new session
         session.setRevoked(true);
         refreshSessionRepository.save(session);
 

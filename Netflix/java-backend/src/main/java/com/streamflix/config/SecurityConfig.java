@@ -45,9 +45,12 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
+                                "/ws/**",
                                 "/api/v1/auth/**",
                                 "/api/v1/catalog/**",
                                 "/api/v1/stream/**",
+                                "/api/v1/recommendations/similar/**",
+                                "/api/v1/watchparties/**",
                                 "/api/v1/health",
                                 "/api/v1/readiness",
                                 "/actuator/**",
@@ -56,7 +59,8 @@ public class SecurityConfig {
                                 "/api/categories",
                                 "/api/profiles",
                                 "/api/search",
-                                "/api/stream/**"
+                                "/api/stream/**",
+                                "/api/watch-parties/**"
                         ).permitAll()
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()

@@ -1,10 +1,17 @@
 import React, { useState } from "react";
 import { Grid, Bookmark, Film, UserCheck, Settings, Heart, MessageCircle } from "lucide-react";
-import { useApp } from "../../context/AppContext";
-import { EditProfileModal } from "./EditProfileModal";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { usePosts } from "../../context/posts-context";
+import { useProfile } from "../../context/profile-context";
+import { useReels } from "../../context/reels-context";
 
 export const Profile = () => {
-  const { user, posts, reels, setIsEditProfileModalOpen, setActiveDetailPost } = useApp();
+  const { user } = useProfile();
+  const { posts } = usePosts();
+  const { reels } = useReels();
+  const { username } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState("posts"); // 'posts' | 'reels' | 'saved' | 'tagged'
 
   // Filter posts created by current user or all feed posts for demo display
@@ -25,6 +32,20 @@ export const Profile = () => {
         }))
       : userPosts;
 
+  if (username && username !== user.username) {
+    return (
+      <section className="route-state-page">
+        <h1>Profile unavailable</h1>
+        <p>The Phase 1 mock dataset only exposes the current PhotoFlow profile.</p>
+      </section>
+    );
+  }
+
+  const openPost = (postId) => {
+    if (!postId) return;
+    navigate(`/p/${postId}`, { state: { backgroundPath: location.pathname } });
+  };
+
   return (
     <div style={{ display: "flex", justifyContent: "center", width: "100%" }}>
       <div className="profile-container">
@@ -41,7 +62,12 @@ export const Profile = () => {
                 <span style={{ color: "#0095f6", fontSize: "1.2rem" }}>✓</span>
               )}
 
-              <button className="btn-secondary" onClick={() => setIsEditProfileModalOpen(true)}>
+              <button
+                className="btn-secondary"
+                onClick={() =>
+                  navigate("/accounts/edit", { state: { backgroundPath: location.pathname } })
+                }
+              >
                 Edit profile
               </button>
 
@@ -203,7 +229,15 @@ export const Profile = () => {
             <div
               key={item.id}
               className="explore-item"
-              onClick={() => setActiveDetailPost(item.isReel ? posts[0] : item)}
+              role="link"
+              tabIndex={0}
+              onClick={() => openPost(item.isReel ? posts[0]?.id : item.id)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  openPost(item.isReel ? posts[0]?.id : item.id);
+                }
+              }}
             >
               <img
                 src={item.images ? item.images[0] : item.poster}
@@ -224,8 +258,6 @@ export const Profile = () => {
             </div>
           ))}
         </div>
-
-        <EditProfileModal />
       </div>
     </div>
   );

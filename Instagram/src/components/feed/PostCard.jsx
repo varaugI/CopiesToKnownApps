@@ -9,18 +9,23 @@ import {
   ChevronRight,
   Smile
 } from "lucide-react";
-import { useApp } from "../../context/AppContext";
+import { useLocation, useNavigate } from "react-router-dom";
+import { usePosts } from "../../context/posts-context";
+import { useUi } from "../../context/ui-context";
 
 export const PostCard = ({ post }) => {
   const {
     toggleLikePost,
     toggleSavePost,
     addComment,
-    toggleLikeComment,
+    toggleLikeComment
+  } = usePosts();
+  const {
     setActiveLikesModalPost,
-    setActiveShareModalPost,
-    setActiveDetailPost
-  } = useApp();
+    setActiveShareModalPost
+  } = useUi();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const [currentImgIndex, setCurrentImgIndex] = useState(0);
   const [commentInput, setCommentInput] = useState("");
@@ -49,6 +54,10 @@ export const PostCard = ({ post }) => {
     }
   };
 
+  const openPostDetail = () => {
+    navigate(`/p/${post.id}`, { state: { backgroundPath: location.pathname } });
+  };
+
   return (
     <article className="post-card">
       {/* Post Header */}
@@ -71,7 +80,11 @@ export const PostCard = ({ post }) => {
             {post.user.location && <div className="post-location">{post.user.location}</div>}
           </div>
         </div>
-        <button className="action-btn">
+        <button
+          type="button"
+          aria-label={`More options for post by ${post.user.username}`}
+          className="action-btn"
+        >
           <MoreHorizontal size={20} />
         </button>
       </header>
@@ -94,6 +107,8 @@ export const PostCard = ({ post }) => {
           <>
             {currentImgIndex > 0 && (
               <button
+                type="button"
+                aria-label="Previous image"
                 onClick={(e) => {
                   e.stopPropagation();
                   setCurrentImgIndex((prev) => prev - 1);
@@ -121,6 +136,8 @@ export const PostCard = ({ post }) => {
 
             {currentImgIndex < post.images.length - 1 && (
               <button
+                type="button"
+                aria-label="Next image"
                 onClick={(e) => {
                   e.stopPropagation();
                   setCurrentImgIndex((prev) => prev + 1);
@@ -177,20 +194,37 @@ export const PostCard = ({ post }) => {
       <div className="post-actions">
         <div className="post-actions-left">
           <button
+            type="button"
+            aria-label={post.isLiked ? `Unlike post by ${post.user.username}` : `Like post by ${post.user.username}`}
             className={`action-btn ${post.isLiked ? "liked" : ""}`}
             onClick={() => toggleLikePost(post.id)}
           >
             <Heart size={24} fill={post.isLiked ? "var(--accent-red)" : "none"} />
           </button>
-          <button className="action-btn" onClick={() => setActiveDetailPost(post)}>
+          <button
+            type="button"
+            aria-label={`Comment on post by ${post.user.username}`}
+            className="action-btn"
+            onClick={openPostDetail}
+          >
             <MessageCircle size={24} />
           </button>
-          <button className="action-btn" onClick={() => setActiveShareModalPost(post)}>
+          <button
+            type="button"
+            aria-label={`Share post by ${post.user.username}`}
+            className="action-btn"
+            onClick={() => setActiveShareModalPost(post)}
+          >
             <Send size={24} />
           </button>
         </div>
 
-        <button className="action-btn" onClick={() => toggleSavePost(post.id)}>
+        <button
+          type="button"
+          aria-label={post.isSaved ? `Unsave post by ${post.user.username}` : `Save post by ${post.user.username}`}
+          className="action-btn"
+          onClick={() => toggleSavePost(post.id)}
+        >
           <Bookmark size={24} fill={post.isSaved ? "var(--text-primary)" : "none"} />
         </button>
       </div>
@@ -215,7 +249,7 @@ export const PostCard = ({ post }) => {
             color: "var(--text-muted)",
             cursor: "pointer"
           }}
-          onClick={() => setActiveDetailPost(post)}
+          onClick={openPostDetail}
         >
           View all {post.comments.length} comments
         </div>
@@ -238,6 +272,8 @@ export const PostCard = ({ post }) => {
             <span>{comment.text}</span>
           </div>
           <button
+            type="button"
+            aria-label={comment.isLiked ? "Unlike comment" : "Like comment"}
             className="action-btn"
             onClick={() => toggleLikeComment(post.id, comment.id)}
             style={{ padding: 2 }}
