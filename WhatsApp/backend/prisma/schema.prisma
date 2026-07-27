@@ -1,0 +1,409 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum AccountRole {
+  USER
+  ADMINISTRATOR
+  MODERATOR
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  VIDEO
+  AUDIO
+  DOCUMENT
+}
+
+enum ReceiptState {
+  ACCEPTED
+  SENT
+  DELIVERED
+  READ
+}
+
+enum CallType {
+  VOICE
+  VIDEO
+}
+
+enum CallStatus {
+  RINGING
+  ACTIVE
+  ENDED
+  REJECTED
+  MISSED
+}
+
+model Account {
+  id               String                 @id @default(uuid())
+  publicId         String                 @unique @default(uuid())
+  phoneNumber      String?                @unique
+  email            String?                @unique
+  displayName      String
+  about            String?
+  avatarUrl        String?
+  role             AccountRole            @default(USER)
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+
+  identities       AccountIdentity[]
+  devices          Device[]
+  refreshSessions  RefreshSession[]
+  contacts         Contact[]              @relation("AccountContacts")
+  contactOf        Contact[]              @relation("ContactOwner")
+  blockedUsers     Block[]                @relation("Blocker")
+  blockedBy        Block[]                @relation("BlockedTarget")
+  memberships      ConversationMember[]
+  messagesSent     Message[]              @relation("MessageSender")
+  receipts         MessageReceipt[]
+  statusUpdates    StatusUpdate[]
+  statusViews      StatusView[]
+  channelsAdmined  ChannelAdministrator[]
+  channelsFollowed ChannelFollower[]
+  callsInitiated   CallSession[]          @relation("CallInitiator")
+  callParticipations CallParticipant[]
+  reportsSubmitted Report[]               @relation("Reporter")
+  auditEvents      AuditEvent[]
+
+  privacySettings  PrivacySettings?
+}
+
+model AccountIdentity {
+  id        String   @id @default(uuid())
+  accountId String
+  provider  String
+  subject   String
+  createdAt DateTime @default(now())
+
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, subject])
+}
+
+model VerificationChallenge {
+  id          String   @id @default(uuid())
+  target      String
+  codeHash    String
+  attempts    Int      @default(0)
+  expiresAt   DateTime
+  isVerified  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([target])
+}
+
+model Device {
+  id          String           @id @default(uuid())
+  accountId   String
+  deviceName  String
+  clientKey   String?
+  lastActive  DateTime         @default(now())
+  createdAt   DateTime         @default(now())
+
+  account     Account          @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  sessions    RefreshSession[]
+  receipts    MessageReceipt[]
+
+  @@index([accountId])
+}
+
+model RefreshSession {
+  id          String   @id @default(uuid())
+  accountId   String
+  deviceId    String
+  tokenHash   String   @unique
+  expiresAt   DateTime
+  isRevoked   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  account     Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  device      Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+}
+
+model Contact {
+  id          String   @id @default(uuid())
+  ownerId     String
+  contactId   String
+  aliasName   String?
+  createdAt   DateTime @default(now())
+
+  owner       Account  @relation("ContactOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  contactUser Account  @relation("AccountContacts", fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@unique([ownerId, contactId])
+}
+
+model PrivacySettings {
+  id                String   @id @default(uuid())
+  accountId         String   @unique
+  lastSeenVisibility String  @default("everyone")
+  profilePhoto      String   @default("everyone")
+  aboutVisibility   String   @default("everyone")
+  statusVisibility  String   @default("contacts")
+  readReceipts      Boolean  @default(true)
+
+  account           Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+}
+
+model Block {
+  id          String   @id @default(uuid())
+  blockerId   String
+  targetId    String
+  createdAt   DateTime @default(now())
+
+  blocker     Account  @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  target      Account  @relation("BlockedTarget", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, targetId])
+}
+
+model Conversation {
+  id           String               @id @default(uuid())
+  isGroup      Boolean              @default(false)
+  title        String?
+  avatarUrl    String?
+  lastSequence BigInt               @default(0)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  members      ConversationMember[]
+  messages     Message[]
+  directPair   DirectConversationPair?
+
+  @@index([updatedAt])
+}
+
+model DirectConversationPair {
+  id             String       @id @default(uuid())
+  conversationId String       @unique
+  userAId        String
+  userBId        String
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@unique([userAId, userBId])
+}
+
+model ConversationMember {
+  id             String       @id @default(uuid())
+  conversationId String
+  accountId      String
+  role           String       @default("member")
+  joinedAt       DateTime     @default(now())
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  account        Account      @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, accountId])
+  @@index([accountId])
+}
+
+model Message {
+  id              String             @id @default(uuid())
+  clientMessageId String
+  conversationId  String
+  senderId        String
+  sequenceNumber  BigInt
+  type            MessageType        @default(TEXT)
+  createdAt       DateTime           @default(now())
+
+  conversation    Conversation       @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender          Account            @relation("MessageSender", fields: [senderId], references: [id])
+  textPayload     MessageTextPayload?
+  attachments     MessageAttachment[]
+  receipts        MessageReceipt[]
+  reactions       MessageReaction[]
+
+  @@unique([senderId, clientMessageId])
+  @@index([conversationId, sequenceNumber])
+}
+
+model MessageTextPayload {
+  id        String   @id @default(uuid())
+  messageId String   @unique
+  body      String
+
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+}
+
+model MessageAttachment {
+  id          String   @id @default(uuid())
+  messageId   String
+  objectKey   String
+  fileType    String
+  fileSize    Int
+  width       Int?
+  height      Int?
+  duration    Int?
+
+  message     Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+}
+
+model MessageReceipt {
+  id         String       @id @default(uuid())
+  messageId  String
+  accountId  String
+  deviceId   String?
+  state      ReceiptState @default(DELIVERED)
+  updatedAt  DateTime     @updatedAt
+
+  message    Message      @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  account    Account      @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  device     Device?      @relation(fields: [deviceId], references: [id])
+
+  @@unique([messageId, accountId, state])
+}
+
+model MessageReaction {
+  id        String   @id @default(uuid())
+  messageId String
+  accountId String
+  emoji     String
+  createdAt DateTime @default(now())
+
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, accountId, emoji])
+}
+
+model StatusUpdate {
+  id        String       @id @default(uuid())
+  accountId String
+  mediaUrl  String?
+  caption   String?
+  expiresAt DateTime
+  createdAt DateTime     @default(now())
+
+  account   Account      @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  views     StatusView[]
+
+  @@index([expiresAt])
+}
+
+model StatusView {
+  id             String       @id @default(uuid())
+  statusUpdateId String
+  viewerId       String
+  viewedAt       DateTime     @default(now())
+
+  statusUpdate   StatusUpdate @relation(fields: [statusUpdateId], references: [id], onDelete: Cascade)
+  viewer         Account      @relation(fields: [viewerId], references: [id], onDelete: Cascade)
+
+  @@unique([statusUpdateId, viewerId])
+}
+
+model Channel {
+  id          String                 @id @default(uuid())
+  name        String
+  description String?
+  avatarUrl   String?
+  createdAt   DateTime               @default(now())
+
+  admins      ChannelAdministrator[]
+  followers   ChannelFollower[]
+  updates     ChannelUpdate[]
+}
+
+model ChannelAdministrator {
+  id        String   @id @default(uuid())
+  channelId String
+  accountId String
+  role      String   @default("owner")
+
+  channel   Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, accountId])
+}
+
+model ChannelFollower {
+  id        String   @id @default(uuid())
+  channelId String
+  accountId String
+  createdAt DateTime @default(now())
+
+  channel   Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, accountId])
+}
+
+model ChannelUpdate {
+  id        String   @id @default(uuid())
+  channelId String
+  content   String
+  mediaUrl  String?
+  createdAt DateTime @default(now())
+
+  channel   Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@index([channelId, createdAt])
+}
+
+model CallSession {
+  id          String            @id @default(uuid())
+  initiatorId String
+  type        CallType          @default(VOICE)
+  status      CallStatus        @default(RINGING)
+  startedAt   DateTime          @default(now())
+  endedAt     DateTime?
+
+  initiator   Account           @relation("CallInitiator", fields: [initiatorId], references: [id])
+  participants CallParticipant[]
+}
+
+model CallParticipant {
+  id            String      @id @default(uuid())
+  callSessionId String
+  accountId     String
+  status        CallStatus  @default(RINGING)
+
+  callSession   CallSession @relation(fields: [callSessionId], references: [id], onDelete: Cascade)
+  account       Account     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([callSessionId, accountId])
+}
+
+model Report {
+  id          String   @id @default(uuid())
+  reporterId  String
+  targetType  String
+  targetId    String
+  reason      String
+  createdAt   DateTime @default(now())
+
+  reporter    Account  @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+}
+
+model OutboxEvent {
+  id          String   @id @default(uuid())
+  aggregateType String
+  aggregateId   String
+  eventType     String
+  payload       String
+  isPublished   Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  @@index([isPublished, createdAt])
+}
+
+model AuditEvent {
+  id          String   @id @default(uuid())
+  accountId   String?
+  action      String
+  metadata    String?
+  createdAt   DateTime @default(now())
+
+  account     Account? @relation(fields: [accountId], references: [id])
+
+  @@index([createdAt])
+}
