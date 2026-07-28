@@ -1,0 +1,9 @@
+{
+  "plugins": ["react", "react-perf"],
+  "rules": {
+    "react/jsx-key": "error",
+    "react/no-array-index-key": "warn",
+    "react-perf/jsx-no-new-function-as-prop": "off",
+    "typescript/no-explicit-any": "warn"
+  }
+}
