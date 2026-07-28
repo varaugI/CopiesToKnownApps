@@ -3,19 +3,21 @@ import {
   CURRENT_USER,
   CATEGORIES,
   INITIAL_VIDEOS,
-  INITIAL_SHORTS
+  INITIAL_SHORTS,
+  INITIAL_PLAYLISTS,
+  SEARCH_SUGGESTIONS
 } from "../data/mockYouTubeData";
 
 const YouTubeContext = createContext();
 
 export const YouTubeProvider = ({ children }) => {
-  // Navigation View
-  const [activeView, setActiveView] = useState("home"); // 'home' | 'shorts' | 'subscriptions' | 'library' | 'watch' | 'channel' | 'search'
+  // Active Navigation View ('home' | 'shorts' | 'subscriptions' | 'library' | 'watch' | 'channel' | 'search')
+  const [activeView, setActiveView] = useState("home");
 
-  // Current User
+  // User Profile
   const [user, setUser] = useState(CURRENT_USER);
 
-  // Videos State
+  // Videos State with LocalStorage
   const [videos, setVideos] = useState(() => {
     const saved = localStorage.getItem("yt_videos");
     return saved ? JSON.parse(saved) : INITIAL_VIDEOS;
@@ -25,15 +27,34 @@ export const YouTubeProvider = ({ children }) => {
     localStorage.setItem("yt_videos", JSON.stringify(videos));
   }, [videos]);
 
-  // Active Video Watch ID & Object
+  // Ambient & Theater Modes
+  const [isAmbientMode, setIsAmbientMode] = useState(true);
+  const [isTheaterMode, setIsTheaterMode] = useState(false);
+  const [isMiniplayerActive, setIsMiniplayerActive] = useState(false);
+
+  // Active Video Watch ID
   const [activeWatchVideoId, setActiveWatchVideoId] = useState("yt_1");
   const activeWatchVideo = videos.find((v) => v.id === activeWatchVideoId) || videos[0];
 
   // Watch History
   const [watchHistory, setWatchHistory] = useState([videos[0], videos[1]]);
 
+  // Playlists State with LocalStorage
+  const [playlists, setPlaylists] = useState(() => {
+    const saved = localStorage.getItem("yt_playlists");
+    return saved ? JSON.parse(saved) : INITIAL_PLAYLISTS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("yt_playlists", JSON.stringify(playlists));
+  }, [playlists]);
+
+  const [isSaveToPlaylistModalOpen, setIsSaveToPlaylistModalOpen] = useState(false);
+  const [targetPlaylistVideoId, setTargetPlaylistVideoId] = useState(null);
+
   const openWatchView = (videoId) => {
     setActiveWatchVideoId(videoId);
+    setIsMiniplayerActive(false);
     const target = videos.find((v) => v.id === videoId);
     if (target) {
       setWatchHistory((prev) => [target, ...prev.filter((v) => v.id !== videoId)]);
@@ -115,6 +136,7 @@ export const YouTubeProvider = ({ children }) => {
       dislikesCount: 0,
       uploadedAt: "JUST NOW",
       category: category || "Coding",
+      ambientColor: "rgba(0, 200, 255, 0.4)",
       channel: {
         id: "ch_my_user",
         name: user.name,
@@ -131,15 +153,29 @@ export const YouTubeProvider = ({ children }) => {
     openWatchView(newVid.id);
   };
 
-  // Search & Category
+  const openSaveToPlaylistModal = (videoId) => {
+    setTargetPlaylistVideoId(videoId);
+    setIsSaveToPlaylistModalOpen(true);
+  };
+
+  const createNewPlaylist = (title, isPrivate) => {
+    if (!title.trim()) return;
+    const newPl = {
+      id: "pl_" + Date.now(),
+      title: title.trim(),
+      isPrivate: Boolean(isPrivate),
+      videosCount: 1,
+      thumbnail: activeWatchVideo?.thumbnail || "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&auto=format&fit=crop&q=80"
+    };
+    setPlaylists((prev) => [newPl, ...prev]);
+  };
+
+  // Search & Filters
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
 
   // Shorts State
   const [shorts, setShorts] = useState(INITIAL_SHORTS);
-
-  // Active Channel View State
-  const [activeChannel, setActiveChannel] = useState(null);
 
   // Studio Upload Modal
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -157,15 +193,25 @@ export const YouTubeProvider = ({ children }) => {
         toggleSubscribeChannel,
         addCommentToVideo,
         createVideo,
+        isAmbientMode,
+        setIsAmbientMode,
+        isTheaterMode,
+        setIsTheaterMode,
+        isMiniplayerActive,
+        setIsMiniplayerActive,
+        playlists,
+        openSaveToPlaylistModal,
+        createNewPlaylist,
+        isSaveToPlaylistModalOpen,
+        setIsSaveToPlaylistModalOpen,
         searchQuery,
         setSearchQuery,
+        searchSuggestions: SEARCH_SUGGESTIONS,
         selectedCategory,
         setSelectedCategory,
         categories: CATEGORIES,
         shorts,
         watchHistory,
-        activeChannel,
-        setActiveChannel,
         isUploadModalOpen,
         setIsUploadModalOpen
       }}

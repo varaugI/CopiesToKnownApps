@@ -5,6 +5,7 @@ import { ValidationPipe } from "@nestjs/common";
 import { ConversationsModule } from "../src/modules/conversations/conversations.module";
 import { PrismaService } from "../src/modules/database/prisma.service";
 import { RealtimeGateway } from "../src/modules/realtime/realtime.gateway";
+import { RedisService } from "../src/modules/redis/redis.service";
 
 describe("Phase 6 Backend — Durable Messaging & Idempotency Integration Test", () => {
   let app: NestFastifyApplication;
@@ -72,6 +73,12 @@ describe("Phase 6 Backend — Durable Messaging & Idempotency Integration Test",
     }
   };
 
+  const mockRedisService = {
+    get: async () => null,
+    set: async () => {},
+    del: async () => {}
+  };
+
   beforeAll(async () => {
     const moduleRef: TestingModule = await Test.createTestingModule({
       imports: [ConversationsModule]
@@ -80,6 +87,8 @@ describe("Phase 6 Backend — Durable Messaging & Idempotency Integration Test",
       .useValue(mockPrisma)
       .overrideProvider(RealtimeGateway)
       .useValue(mockRealtimeGateway)
+      .overrideProvider(RedisService)
+      .useValue(mockRedisService)
       .compile();
 
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());

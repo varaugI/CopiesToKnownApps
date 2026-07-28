@@ -8,6 +8,8 @@ import { ShortsView } from "./components/shorts/ShortsView";
 import { ChannelView } from "./components/channel/ChannelView";
 import { LibraryView } from "./components/library/LibraryView";
 import { UploadVideoModal } from "./components/studio/UploadVideoModal";
+import { SaveToPlaylistModal } from "./components/playlist/SaveToPlaylistModal";
+import { Miniplayer } from "./components/layout/Miniplayer";
 import "./index.css";
 
 const MainLayout = () => {
@@ -35,6 +37,8 @@ const MainLayout = () => {
       </div>
 
       <UploadVideoModal />
+      <SaveToPlaylistModal />
+      <Miniplayer />
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
+import { Injectable, OnModuleInit, OnModuleDestroy, Inject, Optional } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import Redis from "ioredis";
 
@@ -6,10 +6,16 @@ import Redis from "ioredis";
 export class RedisService implements OnModuleInit, OnModuleDestroy {
   private client!: Redis;
 
-  constructor(private configService: ConfigService) {}
+  constructor(
+    @Optional() @Inject(ConfigService) private readonly configService?: ConfigService
+  ) {}
 
   onModuleInit() {
-    const redisUrl = this.configService.get<string>("REDIS_URL") || "redis://localhost:6379";
+    const redisUrl =
+      this.configService?.get<string>("REDIS_URL") ||
+      process.env.REDIS_URL ||
+      "redis://localhost:6379";
+
     this.client = new Redis(redisUrl, {
       lazyConnect: true,
       maxRetriesPerRequest: 3

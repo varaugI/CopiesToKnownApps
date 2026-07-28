@@ -12,6 +12,7 @@ import { ContactsModule } from "./modules/contacts/contacts.module";
 import { PrivacyModule } from "./modules/privacy/privacy.module";
 import { RealtimeModule } from "./modules/realtime/realtime.module";
 import { ConversationsModule } from "./modules/conversations/conversations.module";
+import { ReceiptsModule } from "./modules/receipts/receipts.module";
 
 @Module({
   imports: [
@@ -29,7 +30,8 @@ import { ConversationsModule } from "./modules/conversations/conversations.modul
     ContactsModule,
     PrivacyModule,
     RealtimeModule,
-    ConversationsModule
+    ConversationsModule,
+    ReceiptsModule
   ]
 })
 export class AppModule {}

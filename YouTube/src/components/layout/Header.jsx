@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Menu, Search, Mic, Video, Bell, User } from "lucide-react";
+import { Menu, Search, Mic, Video, Bell, User, Clock } from "lucide-react";
 import { useYouTube } from "../../context/YouTubeContext";
 import { YouTubeLogo } from "../common/YouTubeLogo";
 
@@ -8,16 +8,24 @@ export const Header = () => {
     setActiveView,
     searchQuery,
     setSearchQuery,
+    searchSuggestions,
     user,
     setIsUploadModalOpen
   } = useYouTube();
 
+  const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false);
+
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     if (searchQuery.trim()) {
+      setIsSuggestionsOpen(false);
       setActiveView("search");
     }
   };
+
+  const filteredSuggestions = searchSuggestions.filter((s) =>
+    s.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <header className="yt-header">
@@ -33,10 +41,10 @@ export const Header = () => {
         </div>
       </div>
 
-      {/* Center: Search Bar & Voice Mic */}
+      {/* Center: Search Bar with Suggestions Dropdown */}
       <form
         onSubmit={handleSearchSubmit}
-        style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, maxWidth: 640, margin: "0 20px" }}
+        style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, maxWidth: 640, margin: "0 20px", position: "relative" }}
       >
         <div
           style={{
@@ -53,7 +61,12 @@ export const Header = () => {
             type="text"
             placeholder="Search"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setIsSuggestionsOpen(true);
+            }}
+            onFocus={() => setIsSuggestionsOpen(true)}
+            onBlur={() => setTimeout(() => setIsSuggestionsOpen(false), 200)}
             style={{
               width: "100%",
               background: "none",
@@ -80,6 +93,48 @@ export const Header = () => {
         >
           <Search size={20} />
         </button>
+
+        {/* Auto-suggest Dropdown */}
+        {isSuggestionsOpen && searchQuery.trim() && filteredSuggestions.length > 0 && (
+          <div
+            style={{
+              position: "absolute",
+              top: 48,
+              left: 0,
+              right: 80,
+              backgroundColor: "var(--yt-dark-card)",
+              border: "1px solid var(--yt-border)",
+              borderRadius: 16,
+              padding: "10px 0",
+              boxShadow: "0 10px 30px rgba(0,0,0,0.8)",
+              zIndex: 200
+            }}
+          >
+            {filteredSuggestions.map((s, idx) => (
+              <div
+                key={idx}
+                onClick={() => {
+                  setSearchQuery(s);
+                  setIsSuggestionsOpen(false);
+                  setActiveView("search");
+                }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: "8px 16px",
+                  cursor: "pointer",
+                  fontSize: "0.9rem",
+                  fontWeight: 600
+                }}
+                onMouseDown={(e) => e.preventDefault()}
+              >
+                <Clock size={16} color="var(--text-muted)" />
+                <span>{s}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         <button
           type="button"
