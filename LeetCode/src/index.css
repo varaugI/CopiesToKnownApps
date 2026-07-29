@@ -1,0 +1,131 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap');
+
+:root {
+  --lc-bg: #1a1a1a;
+  --lc-card: #282828;
+  --lc-card-hover: #323232;
+  --lc-border: rgba(255, 255, 255, 0.1);
+  --lc-orange: #ffa116;
+  --lc-orange-hover: #e08b00;
+  --lc-green: #00b8a3;
+  --lc-yellow: #ffb800;
+  --lc-red: #ff2d55;
+  --text-primary: #eff1f680;
+  --text-bold: #ffffff;
+  --text-secondary: #8c8c8c;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: var(--lc-bg);
+  color: var(--text-bold);
+  overflow-x: hidden;
+  line-height: 1.5;
+}
+
+code, pre, textarea.code-input {
+  font-family: 'Fira Code', monospace;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+}
+
+.lc-app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.lc-header {
+  height: 50px;
+  background-color: var(--lc-card);
+  border-bottom: 1px solid var(--lc-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.lc-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Workspace Split Layout */
+.workspace-layout {
+  display: flex;
+  height: calc(100vh - 50px);
+  overflow: hidden;
+}
+
+.workspace-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--lc-card);
+  border-right: 1px solid var(--lc-border);
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.badge-easy {
+  color: var(--lc-green);
+  background-color: rgba(0, 184, 163, 0.15);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.78rem;
+}
+
+.badge-medium {
+  color: var(--lc-yellow);
+  background-color: rgba(255, 184, 0, 0.15);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.78rem;
+}
+
+.badge-hard {
+  color: var(--lc-red);
+  background-color: rgba(255, 45, 85, 0.15);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.78rem;
+}
+
+.btn-lc-primary {
+  background-color: var(--lc-orange);
+  color: black;
+  font-weight: 800;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 18px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-lc-primary:hover {
+  background-color: var(--lc-orange-hover);
+}

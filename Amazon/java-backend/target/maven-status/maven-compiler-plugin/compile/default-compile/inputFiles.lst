@@ -1,0 +1,14 @@
+C:\Users\varua\gaurav\CopiesToKnownApps\Amazon\java-backend\src\main\java\com\amazon\AmazonBackendApplication.java
+C:\Users\varua\gaurav\CopiesToKnownApps\Amazon\java-backend\src\main\java\com\amazon\config\DataSeeder.java
+C:\Users\varua\gaurav\CopiesToKnownApps\Amazon\java-backend\src\main\java\com\amazon\controller\CartController.java
+C:\Users\varua\gaurav\CopiesToKnownApps\Amazon\java-backend\src\main\java\com\amazon\controller\HealthController.java
+C:\Users\varua\gaurav\CopiesToKnownApps\Amazon\java-backend\src\main\java\com\amazon\controller\OrderController.java
+C:\Users\varua\gaurav\CopiesToKnownApps\Amazon\java-backend\src\main\java\com\amazon\controller\ProductController.java
+C:\Users\varua\gaurav\CopiesToKnownApps\Amazon\java-backend\src\main\java\com\amazon\domain\CartItem.java
+C:\Users\varua\gaurav\CopiesToKnownApps\Amazon\java-backend\src\main\java\com\amazon\domain\Order.java
+C:\Users\varua\gaurav\CopiesToKnownApps\Amazon\java-backend\src\main\java\com\amazon\domain\Product.java
+C:\Users\varua\gaurav\CopiesToKnownApps\Amazon\java-backend\src\main\java\com\amazon\dto\AddToCartRequest.java
+C:\Users\varua\gaurav\CopiesToKnownApps\Amazon\java-backend\src\main\java\com\amazon\dto\CheckoutRequest.java
+C:\Users\varua\gaurav\CopiesToKnownApps\Amazon\java-backend\src\main\java\com\amazon\repository\CartRepository.java
+C:\Users\varua\gaurav\CopiesToKnownApps\Amazon\java-backend\src\main\java\com\amazon\repository\OrderRepository.java
+C:\Users\varua\gaurav\CopiesToKnownApps\Amazon\java-backend\src\main\java\com\amazon\repository\ProductRepository.java

@@ -1,0 +1,14 @@
+com\amazon\domain\Order.class
+com\amazon\domain\Product.class
+com\amazon\repository\OrderRepository.class
+com\amazon\config\DataSeeder.class
+com\amazon\dto\AddToCartRequest.class
+com\amazon\controller\OrderController.class
+com\amazon\dto\CheckoutRequest.class
+com\amazon\repository\CartRepository.class
+com\amazon\domain\CartItem.class
+com\amazon\controller\CartController.class
+com\amazon\controller\ProductController.class
+com\amazon\AmazonBackendApplication.class
+com\amazon\repository\ProductRepository.class
+com\amazon\controller\HealthController.class

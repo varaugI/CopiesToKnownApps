@@ -7,7 +7,7 @@
     "dev": "vinext dev",
     "build": "vinext build && node scripts/prepare-hosting.mjs",
     "start": "vinext start",
-    "lint": "oxlint app components data --deny-warnings",
+    "lint": "oxlint app components data lib server --deny-warnings",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "verify": "npm run lint && npm run typecheck && npm run test && npm run build"
@@ -17,7 +17,7 @@
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-server-dom-webpack": "^19.2.7",
-    "vinext": "latest"
+    "vinext": "1.0.0-beta.4"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^7.0.0",

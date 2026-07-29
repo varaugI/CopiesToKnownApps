@@ -1,0 +1,94 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
+
+:root {
+  --prime-bg: #0f172a;
+  --prime-header: rgba(15, 23, 42, 0.95);
+  --prime-blue: #00a8e1;
+  --prime-blue-hover: #0082b3;
+  --prime-card: #1e293b;
+  --prime-card-hover: #334155;
+  --prime-border: rgba(255, 255, 255, 0.12);
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: var(--prime-bg);
+  color: var(--text-primary);
+  overflow-x: hidden;
+  line-height: 1.4;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+}
+
+.prime-app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.prime-header {
+  height: 64px;
+  background-color: var(--prime-header);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--prime-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+}
+
+/* X-Ray Vision Overlay */
+.xray-overlay {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  backgroundColor: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--prime-border);
+  border-radius: 12px;
+  padding: 16px 20px;
+  color: white;
+  z-index: 50;
+}
+
+.btn-prime-blue {
+  background-color: var(--prime-blue);
+  color: white;
+  font-weight: 800;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 24px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.btn-prime-blue:hover {
+  background-color: var(--prime-blue-hover);
+}

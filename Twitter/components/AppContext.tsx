@@ -17,12 +17,13 @@ import {
 import {
   CURRENT_USER_ID,
   conversations as initialConversations,
-  notifications,
+  notifications as initialNotifications,
   replyTweets as initialReplyTweets,
-  trends,
+  trends as initialTrends,
   tweets as initialTweets,
   users as initialUsers,
 } from "@/data/mockData";
+import { chirpApi, type ApiBootstrap } from "@/lib/api";
 import type {
   Conversation,
   Message,
@@ -185,6 +186,98 @@ function isStoredConversation(value: unknown): value is Conversation {
   );
 }
 
+function isStoredUser(value: unknown): value is User {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value.id === "string" &&
+    typeof value.name === "string" &&
+    typeof value.handle === "string" &&
+    typeof value.initials === "string" &&
+    typeof value.avatarClass === "string" &&
+    typeof value.bio === "string" &&
+    typeof value.followers === "number" &&
+    typeof value.following === "number"
+  );
+}
+
+function isStoredNotification(value: unknown): value is NotificationItem {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value.id === "string" &&
+    ["like", "repost", "follow", "mention", "post"].includes(
+      String(value.kind),
+    ) &&
+    Array.isArray(value.userIds) &&
+    value.userIds.every((userId) => typeof userId === "string") &&
+    typeof value.text === "string" &&
+    typeof value.timestamp === "string"
+  );
+}
+
+function isStoredTrend(value: unknown): value is Trend {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value.id === "string" &&
+    typeof value.eyebrow === "string" &&
+    typeof value.title === "string" &&
+    typeof value.posts === "string"
+  );
+}
+
+function toStringArray(value: unknown): string[] | undefined {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : undefined;
+}
+
+function normalizeBootstrap(value: unknown): ApiBootstrap | null {
+  if (!isRecord(value)) return null;
+
+  const interactions = isRecord(value.interactions)
+    ? {
+        likedTweetIds: toStringArray(value.interactions.likedTweetIds),
+        repostedTweetIds: toStringArray(value.interactions.repostedTweetIds),
+        bookmarkedTweetIds: toStringArray(
+          value.interactions.bookmarkedTweetIds,
+        ),
+        followingUserIds: toStringArray(value.interactions.followingUserIds),
+      }
+    : undefined;
+
+  return {
+    currentUser: isStoredUser(value.currentUser)
+      ? value.currentUser
+      : undefined,
+    profile: isStoredUser(value.profile) ? value.profile : undefined,
+    users: Array.isArray(value.users)
+      ? value.users.filter(isStoredUser)
+      : undefined,
+    posts: Array.isArray(value.posts)
+      ? value.posts.filter(isStoredTweet)
+      : undefined,
+    tweets: Array.isArray(value.tweets)
+      ? value.tweets.filter(isStoredTweet)
+      : undefined,
+    replies: Array.isArray(value.replies)
+      ? value.replies.filter(isStoredTweet)
+      : undefined,
+    conversations: Array.isArray(value.conversations)
+      ? value.conversations.filter(isStoredConversation)
+      : undefined,
+    notifications: Array.isArray(value.notifications)
+      ? value.notifications.filter(isStoredNotification)
+      : undefined,
+    trends: Array.isArray(value.trends)
+      ? value.trends.filter(isStoredTrend)
+      : undefined,
+    likedTweetIds: toStringArray(value.likedTweetIds),
+    repostedTweetIds: toStringArray(value.repostedTweetIds),
+    bookmarkedTweetIds: toStringArray(value.bookmarkedTweetIds),
+    followingUserIds: toStringArray(value.followingUserIds),
+    interactions,
+  };
+}
+
 const themeCodec: StoredStateCodec<Theme> = {
   decode: (value) => (value === "dark" ? "dark" : "light"),
 };
@@ -218,13 +311,25 @@ const conversationsCodec: StoredStateCodec<Conversation[]> = {
     Array.isArray(value) && value.every(isStoredConversation) ? value : fallback,
 };
 
+const stringRecordCodec: StoredStateCodec<Record<string, string>> = {
+  decode: (value, fallback) => {
+    if (!isRecord(value)) return fallback;
+    return Object.fromEntries(
+      Object.entries(value).filter(
+        (entry): entry is [string, string] => typeof entry[1] === "string",
+      ),
+    );
+  },
+};
+
 function usePersistedState<T>(
   storageKey: string,
   initialValue: T,
   codec?: StoredStateCodec<T>,
-): [T, Dispatch<SetStateAction<T>>, boolean] {
+): [T, Dispatch<SetStateAction<T>>, boolean, boolean] {
   const [value, setValue] = useState<T>(initialValue);
   const [isHydrated, setIsHydrated] = useState(false);
+  const [hadStoredValue, setHadStoredValue] = useState(false);
   const initialValueRef = useRef(initialValue);
   const codecRef = useRef(codec);
 
@@ -233,6 +338,7 @@ function usePersistedState<T>(
       const storedValue = window.localStorage.getItem(storageKey);
       if (storedValue !== null) {
         const parsedValue: unknown = JSON.parse(storedValue);
+        setHadStoredValue(true);
         setValue(
           codecRef.current
             ? codecRef.current.decode(parsedValue, initialValueRef.current)
@@ -240,6 +346,7 @@ function usePersistedState<T>(
         );
       }
     } catch {
+      setHadStoredValue(false);
       setValue(initialValueRef.current);
     } finally {
       setIsHydrated(true);
@@ -262,7 +369,7 @@ function usePersistedState<T>(
     }
   }, [isHydrated, storageKey, value]);
 
-  return [value, setValue, isHydrated];
+  return [value, setValue, isHydrated, hadStoredValue];
 }
 
 function createClientId(prefix: string): string {
@@ -282,6 +389,88 @@ function toggleSetItem(previous: Set<string>, itemId: string): Set<string> {
   return next;
 }
 
+function mergeById<T extends { id: string }>(
+  preferred: readonly T[],
+  fallback: readonly T[],
+): T[] {
+  const seen = new Set<string>();
+  return [...preferred, ...fallback].filter((item) => {
+    if (seen.has(item.id)) return false;
+    seen.add(item.id);
+    return true;
+  });
+}
+
+function mergeConversations(
+  preferred: readonly Conversation[],
+  fallback: readonly Conversation[],
+): Conversation[] {
+  const fallbackById = new Map(
+    fallback.map((conversation) => [conversation.id, conversation]),
+  );
+  const mergedPreferred = preferred.map((conversation) => {
+    const fallbackConversation = fallbackById.get(conversation.id);
+    if (!fallbackConversation) return conversation;
+    return {
+      ...fallbackConversation,
+      ...conversation,
+      messages: mergeById(
+        conversation.messages,
+        fallbackConversation.messages,
+      ),
+    };
+  });
+
+  return mergeById(mergedPreferred, fallback);
+}
+
+function inverseAliases(
+  aliases: Readonly<Record<string, string>>,
+): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(aliases).map(([localId, remoteId]) => [remoteId, localId]),
+  );
+}
+
+function localizeTweetIds(
+  tweet: AuthoredTweet,
+  inversePostIds: Readonly<Record<string, string>>,
+): AuthoredTweet {
+  return {
+    ...tweet,
+    id: inversePostIds[tweet.id] ?? tweet.id,
+    parentTweetId: tweet.parentTweetId
+      ? (inversePostIds[tweet.parentTweetId] ?? tweet.parentTweetId)
+      : undefined,
+    quotedTweetId: tweet.quotedTweetId
+      ? (inversePostIds[tweet.quotedTweetId] ?? tweet.quotedTweetId)
+      : undefined,
+  };
+}
+
+function localizeConversationIds(
+  conversation: Conversation,
+  inverseConversationIds: Readonly<Record<string, string>>,
+  inverseMessageIds: Readonly<Record<string, string>>,
+): Conversation {
+  return {
+    ...conversation,
+    id:
+      inverseConversationIds[conversation.id] ??
+      conversation.id,
+    messages: conversation.messages.map((message) => ({
+      ...message,
+      id: inverseMessageIds[message.id] ?? message.id,
+    })),
+  };
+}
+
+function syncInBackground(task: Promise<unknown>): void {
+  void task.catch(() => {
+    // Network failures deliberately preserve the already-applied local update.
+  });
+}
+
 function initialsForName(name: string): string {
   return name
     .trim()
@@ -297,48 +486,118 @@ export function TwitterProvider({ children }: { children: ReactNode }) {
     "light",
     themeCodec,
   );
-  const [storedCurrentUser, setStoredCurrentUser, profileHydrated] =
+  const [
+    storedCurrentUser,
+    setStoredCurrentUser,
+    profileHydrated,
+    profileWasStored,
+  ] =
     usePersistedState<User>(
       `${STORAGE_PREFIX}:profile`,
       INITIAL_CURRENT_USER,
       currentUserCodec,
     );
-  const [storedAuthoredTweets, setStoredAuthoredTweets, authoredTweetsHydrated] =
-    usePersistedState<AuthoredTweet[]>(
+  const [
+    storedAuthoredTweets,
+    setStoredAuthoredTweets,
+    authoredTweetsHydrated,
+  ] = usePersistedState<AuthoredTweet[]>(
       `${STORAGE_PREFIX}:authored-tweets`,
       [],
       authoredTweetsCodec,
     );
-  const [likedTweetIds, setLikedTweetIds, likesHydrated] =
+  const [
+    likedTweetIds,
+    setLikedTweetIds,
+    likesHydrated,
+    likesWereStored,
+  ] =
     usePersistedState<Set<string>>(
       `${STORAGE_PREFIX}:liked-tweets`,
       new Set<string>(),
       stringSetCodec,
     );
-  const [repostedTweetIds, setRepostedTweetIds, repostsHydrated] =
+  const [
+    repostedTweetIds,
+    setRepostedTweetIds,
+    repostsHydrated,
+    repostsWereStored,
+  ] =
     usePersistedState<Set<string>>(
       `${STORAGE_PREFIX}:reposted-tweets`,
       new Set<string>(),
       stringSetCodec,
     );
-  const [bookmarkedTweetIds, setBookmarkedTweetIds, bookmarksHydrated] =
+  const [
+    bookmarkedTweetIds,
+    setBookmarkedTweetIds,
+    bookmarksHydrated,
+    bookmarksWereStored,
+  ] =
     usePersistedState<Set<string>>(
       `${STORAGE_PREFIX}:bookmarked-tweets`,
       new Set<string>(),
       stringSetCodec,
     );
-  const [followingUserIds, setFollowingUserIds, followsHydrated] =
+  const [
+    followingUserIds,
+    setFollowingUserIds,
+    followsHydrated,
+    followsWereStored,
+  ] =
     usePersistedState<Set<string>>(
       `${STORAGE_PREFIX}:following-users`,
       new Set<string>(),
       stringSetCodec,
     );
-  const [conversations, setConversations, conversationsHydrated] =
-    usePersistedState<Conversation[]>(
+  const [
+    conversations,
+    setConversations,
+    conversationsHydrated,
+    conversationsWereStored,
+  ] = usePersistedState<Conversation[]>(
       `${STORAGE_PREFIX}:conversations`,
       initialConversations,
       conversationsCodec,
     );
+  const [postIdAliases, setPostIdAliases, postIdAliasesHydrated] =
+    usePersistedState<Record<string, string>>(
+      `${STORAGE_PREFIX}:remote-post-ids`,
+      {},
+      stringRecordCodec,
+    );
+  const [
+    conversationIdAliases,
+    setConversationIdAliases,
+    conversationIdAliasesHydrated,
+  ] = usePersistedState<Record<string, string>>(
+    `${STORAGE_PREFIX}:remote-conversation-ids`,
+    {},
+    stringRecordCodec,
+  );
+  const [messageIdAliases, setMessageIdAliases, messageIdAliasesHydrated] =
+    usePersistedState<Record<string, string>>(
+      `${STORAGE_PREFIX}:remote-message-ids`,
+      {},
+      stringRecordCodec,
+    );
+  const [remoteBootstrap, setRemoteBootstrap] =
+    useState<ApiBootstrap | null>(null);
+  const postIdAliasesRef = useRef(postIdAliases);
+  const conversationIdAliasesRef = useRef(conversationIdAliases);
+  const messageIdAliasesRef = useRef(messageIdAliases);
+  const pendingPostCreates = useRef(new Map<string, Promise<string>>());
+  const pendingConversationCreates = useRef(
+    new Map<string, Promise<string>>(),
+  );
+  const dirtyState = useRef({
+    profile: false,
+    likes: false,
+    reposts: false,
+    bookmarks: false,
+    follows: false,
+    conversations: false,
+  });
 
   const [composeModal, setComposeModal] =
     useState<ComposeModalState>(CLOSED_COMPOSER);
@@ -355,13 +614,155 @@ export function TwitterProvider({ children }: { children: ReactNode }) {
     repostsHydrated &&
     bookmarksHydrated &&
     followsHydrated &&
-    conversationsHydrated;
+    conversationsHydrated &&
+    postIdAliasesHydrated &&
+    conversationIdAliasesHydrated &&
+    messageIdAliasesHydrated;
 
   useEffect(() => {
     if (!themeHydrated) return;
     document.documentElement.dataset.theme = theme;
     document.documentElement.style.colorScheme = theme;
   }, [theme, themeHydrated]);
+
+  useEffect(() => {
+    postIdAliasesRef.current = postIdAliases;
+  }, [postIdAliases]);
+
+  useEffect(() => {
+    conversationIdAliasesRef.current = conversationIdAliases;
+  }, [conversationIdAliases]);
+
+  useEffect(() => {
+    messageIdAliasesRef.current = messageIdAliases;
+  }, [messageIdAliases]);
+
+  useEffect(() => {
+    if (!isHydrated) return;
+
+    let isActive = true;
+    syncInBackground(
+      chirpApi.bootstrap().then((response) => {
+        if (!isActive) return;
+        const bootstrap = normalizeBootstrap(response);
+        if (!bootstrap) return;
+
+        setRemoteBootstrap(bootstrap);
+        const inversePostIds = inverseAliases(postIdAliasesRef.current);
+        const inverseConversationIds = inverseAliases(
+          conversationIdAliasesRef.current,
+        );
+        const inverseMessageIds = inverseAliases(messageIdAliasesRef.current);
+
+        const remoteProfile = bootstrap.currentUser ?? bootstrap.profile;
+        if (
+          !profileWasStored &&
+          !dirtyState.current.profile &&
+          remoteProfile
+        ) {
+          setStoredCurrentUser({
+            ...remoteProfile,
+            id: CURRENT_USER_ID,
+          });
+        }
+
+        const remoteLikedTweetIds =
+          bootstrap.likedTweetIds ?? bootstrap.interactions?.likedTweetIds;
+        if (
+          !likesWereStored &&
+          !dirtyState.current.likes &&
+          remoteLikedTweetIds
+        ) {
+          setLikedTweetIds(
+            new Set(
+              remoteLikedTweetIds.map(
+                (tweetId) => inversePostIds[tweetId] ?? tweetId,
+              ),
+            ),
+          );
+        }
+
+        const remoteRepostedTweetIds =
+          bootstrap.repostedTweetIds ??
+          bootstrap.interactions?.repostedTweetIds;
+        if (
+          !repostsWereStored &&
+          !dirtyState.current.reposts &&
+          remoteRepostedTweetIds
+        ) {
+          setRepostedTweetIds(
+            new Set(
+              remoteRepostedTweetIds.map(
+                (tweetId) => inversePostIds[tweetId] ?? tweetId,
+              ),
+            ),
+          );
+        }
+
+        const remoteBookmarkedTweetIds =
+          bootstrap.bookmarkedTweetIds ??
+          bootstrap.interactions?.bookmarkedTweetIds;
+        if (
+          !bookmarksWereStored &&
+          !dirtyState.current.bookmarks &&
+          remoteBookmarkedTweetIds
+        ) {
+          setBookmarkedTweetIds(
+            new Set(
+              remoteBookmarkedTweetIds.map(
+                (tweetId) => inversePostIds[tweetId] ?? tweetId,
+              ),
+            ),
+          );
+        }
+
+        const remoteFollowingUserIds =
+          bootstrap.followingUserIds ??
+          bootstrap.interactions?.followingUserIds;
+        if (
+          !followsWereStored &&
+          !dirtyState.current.follows &&
+          remoteFollowingUserIds
+        ) {
+          setFollowingUserIds(new Set(remoteFollowingUserIds));
+        }
+
+        if (bootstrap.conversations) {
+          const localizedConversations = bootstrap.conversations.map(
+            (conversation) =>
+              localizeConversationIds(
+                conversation,
+                inverseConversationIds,
+                inverseMessageIds,
+              ),
+          );
+          setConversations((previous) =>
+            conversationsWereStored || dirtyState.current.conversations
+              ? mergeConversations(previous, localizedConversations)
+              : mergeConversations(localizedConversations, previous),
+          );
+        }
+      }),
+    );
+
+    return () => {
+      isActive = false;
+    };
+  }, [
+    bookmarksWereStored,
+    conversationsWereStored,
+    followsWereStored,
+    isHydrated,
+    likesWereStored,
+    profileWasStored,
+    repostsWereStored,
+    setBookmarkedTweetIds,
+    setConversations,
+    setFollowingUserIds,
+    setLikedTweetIds,
+    setRepostedTweetIds,
+    setStoredCurrentUser,
+  ]);
 
   useEffect(
     () => () => {
@@ -416,11 +817,14 @@ export function TwitterProvider({ children }: { children: ReactNode }) {
   const currentUser = storedCurrentUser;
   const profile = currentUser;
   const users = useMemo(
-    () =>
-      initialUsers.map((user) =>
-        user.id === CURRENT_USER_ID ? currentUser : user,
-      ),
-    [currentUser],
+    () => {
+      const remoteAndFallbackUsers = mergeById(
+        remoteBootstrap?.users ?? [],
+        initialUsers,
+      );
+      return mergeById([currentUser], remoteAndFallbackUsers);
+    },
+    [currentUser, remoteBootstrap?.users],
   );
 
   const getUserById = useCallback(
@@ -439,8 +843,27 @@ export function TwitterProvider({ children }: { children: ReactNode }) {
     [users],
   );
 
+  const resolvePostApiId = useCallback(async (tweetId: string) => {
+    const pendingCreate = pendingPostCreates.current.get(tweetId);
+    if (pendingCreate) return pendingCreate;
+    return postIdAliasesRef.current[tweetId] ?? tweetId;
+  }, []);
+
+  const resolveConversationApiId = useCallback(
+    async (conversationId: string) => {
+      const pendingCreate =
+        pendingConversationCreates.current.get(conversationId);
+      if (pendingCreate) return pendingCreate;
+      return (
+        conversationIdAliasesRef.current[conversationId] ?? conversationId
+      );
+    },
+    [],
+  );
+
   const updateProfile = useCallback(
     (updates: Partial<User>) => {
+      dirtyState.current.profile = true;
       setStoredCurrentUser((previous) => {
         const nextName =
           typeof updates.name === "string" && updates.name.trim()
@@ -465,6 +888,7 @@ export function TwitterProvider({ children }: { children: ReactNode }) {
                 : previous.initials,
         };
       });
+      syncInBackground(chirpApi.updateProfile(updates));
       showToast("Your profile was updated.");
     },
     [setStoredCurrentUser, showToast],
@@ -496,23 +920,64 @@ export function TwitterProvider({ children }: { children: ReactNode }) {
     () => storedAuthoredTweets.map(decorateTweet),
     [decorateTweet, storedAuthoredTweets],
   );
-  const feedTweets = useMemo(
-    () => [
-      ...authoredTweets.filter((tweet) => !tweet.parentTweetId),
-      ...initialTweets.map(decorateTweet),
+  const inversePostIdMap = useMemo(
+    () => inverseAliases(postIdAliases),
+    [postIdAliases],
+  );
+  const remotePosts = useMemo(
+    () =>
+      (remoteBootstrap?.posts ?? remoteBootstrap?.tweets ?? [])
+        .map((tweet) => localizeTweetIds(tweet, inversePostIdMap))
+        .filter((tweet) => !tweet.parentTweetId),
+    [
+      inversePostIdMap,
+      remoteBootstrap?.posts,
+      remoteBootstrap?.tweets,
     ],
-    [authoredTweets, decorateTweet],
+  );
+  const remoteReplies = useMemo(
+    () =>
+      (remoteBootstrap?.replies ?? []).map((tweet) =>
+        localizeTweetIds(tweet, inversePostIdMap),
+      ),
+    [inversePostIdMap, remoteBootstrap?.replies],
+  );
+  const feedTweets = useMemo(
+    () =>
+      mergeById(
+        authoredTweets.filter((tweet) => !tweet.parentTweetId),
+        mergeById(remotePosts, initialTweets).map(decorateTweet),
+      ),
+    [authoredTweets, decorateTweet, remotePosts],
   );
   const replies = useMemo(
     () => [
-      ...initialReplyTweets.map(decorateTweet),
+      ...mergeById(remoteReplies, initialReplyTweets).map(decorateTweet),
       ...authoredTweets.filter((tweet) => Boolean(tweet.parentTweetId)),
     ],
-    [authoredTweets, decorateTweet],
+    [authoredTweets, decorateTweet, remoteReplies],
   );
   const allTweets = useMemo(
     () => [...feedTweets, ...replies],
     [feedTweets, replies],
+  );
+  const availableTrends = useMemo(
+    () => mergeById(remoteBootstrap?.trends ?? [], initialTrends),
+    [remoteBootstrap?.trends],
+  );
+  const availableNotifications = useMemo(
+    () =>
+      mergeById(
+        (remoteBootstrap?.notifications ?? []).map((notification) => ({
+          ...notification,
+          tweetId: notification.tweetId
+            ? (inversePostIdMap[notification.tweetId] ??
+              notification.tweetId)
+            : undefined,
+        })),
+        initialNotifications,
+      ),
+    [inversePostIdMap, remoteBootstrap?.notifications],
   );
 
   const getTweetById = useCallback(
@@ -588,11 +1053,65 @@ export function TwitterProvider({ children }: { children: ReactNode }) {
       };
 
       setStoredAuthoredTweets((previous) => [tweet, ...previous]);
+      const persistableMediaIndexes = (tweet.media ?? [])
+        .map((mediaUrl, index) => ({ mediaUrl, index }))
+        .filter(({ mediaUrl }) => !mediaUrl.startsWith("blob:"));
+      const createRequest = (async (): Promise<string> => {
+        try {
+          const remoteTweet = await chirpApi.createPost({
+            text: normalizedText,
+            clientId: tweet.id,
+            media:
+              persistableMediaIndexes.length > 0
+                ? persistableMediaIndexes.map(({ mediaUrl }) => mediaUrl)
+                : undefined,
+            mediaAlt:
+              persistableMediaIndexes.length > 0 && tweet.mediaAlt
+                ? persistableMediaIndexes.map(
+                    ({ index }) => tweet.mediaAlt?.[index] ?? "",
+                  )
+                : undefined,
+            quotedTweetId: normalizedInput.quotedTweetId
+              ? await resolvePostApiId(normalizedInput.quotedTweetId)
+              : undefined,
+          });
+          if (!remoteTweet) return tweet.id;
+          if (remoteTweet.id !== tweet.id) {
+            setPostIdAliases((previous) => {
+              const next = {
+                ...previous,
+                [tweet.id]: remoteTweet.id,
+              };
+              postIdAliasesRef.current = next;
+              return next;
+            });
+          }
+          setStoredAuthoredTweets((previous) =>
+            previous.map((candidate) =>
+              candidate.id === tweet.id
+                ? { ...candidate, ...remoteTweet, id: tweet.id }
+                : candidate,
+            ),
+          );
+          return remoteTweet.id;
+        } catch {
+          return tweet.id;
+        } finally {
+          pendingPostCreates.current.delete(tweet.id);
+        }
+      })();
+      pendingPostCreates.current.set(tweet.id, createRequest);
       closeComposeModal();
       showToast("Your post was sent.");
       return tweet;
     },
-    [closeComposeModal, setStoredAuthoredTweets, showToast],
+    [
+      closeComposeModal,
+      resolvePostApiId,
+      setPostIdAliases,
+      setStoredAuthoredTweets,
+      showToast,
+    ],
   );
 
   const replyToTweet = useCallback(
@@ -617,6 +1136,44 @@ export function TwitterProvider({ children }: { children: ReactNode }) {
       };
 
       setStoredAuthoredTweets((previous) => [reply, ...previous]);
+      const createRequest = (async (): Promise<string> => {
+        try {
+          const targetApiId = await resolvePostApiId(tweetId);
+          const remoteReply = await chirpApi.createReply(targetApiId, {
+            text: normalizedText,
+            clientId: reply.id,
+          });
+          if (!remoteReply) return reply.id;
+          if (remoteReply.id !== reply.id) {
+            setPostIdAliases((previous) => {
+              const next = {
+                ...previous,
+                [reply.id]: remoteReply.id,
+              };
+              postIdAliasesRef.current = next;
+              return next;
+            });
+          }
+          setStoredAuthoredTweets((previous) =>
+            previous.map((candidate) =>
+              candidate.id === reply.id
+                ? {
+                    ...candidate,
+                    ...remoteReply,
+                    id: reply.id,
+                    parentTweetId: reply.parentTweetId,
+                  }
+                : candidate,
+            ),
+          );
+          return remoteReply.id;
+        } catch {
+          return reply.id;
+        } finally {
+          pendingPostCreates.current.delete(reply.id);
+        }
+      })();
+      pendingPostCreates.current.set(reply.id, createRequest);
       closeComposeModal();
       showToast("Your reply was sent.");
       return reply;
@@ -625,6 +1182,8 @@ export function TwitterProvider({ children }: { children: ReactNode }) {
       closeComposeModal,
       getTweetById,
       getUserById,
+      resolvePostApiId,
+      setPostIdAliases,
       setStoredAuthoredTweets,
       showToast,
     ],
@@ -650,9 +1209,15 @@ export function TwitterProvider({ children }: { children: ReactNode }) {
         next.delete(tweetId);
         return next;
       });
+      syncInBackground(
+        resolvePostApiId(tweetId).then((apiPostId) =>
+          chirpApi.deletePost(apiPostId),
+        ),
+      );
       showToast("Your post was deleted.");
     },
     [
+      resolvePostApiId,
       setBookmarkedTweetIds,
       setLikedTweetIds,
       setRepostedTweetIds,
@@ -663,39 +1228,71 @@ export function TwitterProvider({ children }: { children: ReactNode }) {
 
   const toggleLike = useCallback(
     (tweetId: string) => {
+      dirtyState.current.likes = true;
+      const willLike = !likedTweetIds.has(tweetId);
       setLikedTweetIds((previous) => toggleSetItem(previous, tweetId));
+      syncInBackground(
+        resolvePostApiId(tweetId).then((apiPostId) =>
+          chirpApi.setLike(apiPostId, willLike),
+        ),
+      );
     },
-    [setLikedTweetIds],
+    [likedTweetIds, resolvePostApiId, setLikedTweetIds],
   );
 
   const toggleRepost = useCallback(
     (tweetId: string) => {
+      dirtyState.current.reposts = true;
       const willRepost = !repostedTweetIds.has(tweetId);
       setRepostedTweetIds((previous) => toggleSetItem(previous, tweetId));
+      syncInBackground(
+        resolvePostApiId(tweetId).then((apiPostId) =>
+          chirpApi.setRepost(apiPostId, willRepost),
+        ),
+      );
       showToast(willRepost ? "Reposted." : "Repost removed.");
     },
-    [repostedTweetIds, setRepostedTweetIds, showToast],
+    [
+      repostedTweetIds,
+      resolvePostApiId,
+      setRepostedTweetIds,
+      showToast,
+    ],
   );
 
   const toggleBookmark = useCallback(
     (tweetId: string) => {
+      dirtyState.current.bookmarks = true;
       const willBookmark = !bookmarkedTweetIds.has(tweetId);
       setBookmarkedTweetIds((previous) => toggleSetItem(previous, tweetId));
+      syncInBackground(
+        resolvePostApiId(tweetId).then((apiPostId) =>
+          chirpApi.setBookmark(apiPostId, willBookmark),
+        ),
+      );
       showToast(
         willBookmark
           ? "Post added to your Bookmarks."
           : "Post removed from your Bookmarks.",
       );
     },
-    [bookmarkedTweetIds, setBookmarkedTweetIds, showToast],
+    [
+      bookmarkedTweetIds,
+      resolvePostApiId,
+      setBookmarkedTweetIds,
+      showToast,
+    ],
   );
 
   const toggleFollow = useCallback(
     (userId: string) => {
       if (userId === CURRENT_USER_ID) return;
+      dirtyState.current.follows = true;
+      const willFollow = !followingUserIds.has(userId);
       setFollowingUserIds((previous) => toggleSetItem(previous, userId));
+      syncInBackground(chirpApi.setFollow(userId, willFollow));
     },
-    [setFollowingUserIds],
+    [followingUserIds, setFollowingUserIds],
   );
 
   const isTweetLiked = useCallback(
@@ -730,10 +1327,49 @@ export function TwitterProvider({ children }: { children: ReactNode }) {
         messages: [],
         unread: false,
       };
+      dirtyState.current.conversations = true;
       setConversations((previous) => [conversation, ...previous]);
+      const createRequest = (async (): Promise<string> => {
+        try {
+          const remoteConversation =
+            await chirpApi.createConversation(userId);
+          if (!remoteConversation) return conversation.id;
+          if (remoteConversation.id !== conversation.id) {
+            setConversationIdAliases((previous) => {
+              const next = {
+                ...previous,
+                [conversation.id]: remoteConversation.id,
+              };
+              conversationIdAliasesRef.current = next;
+              return next;
+            });
+          }
+          setConversations((previous) =>
+            previous.map((candidate) =>
+              candidate.id === conversation.id
+                ? {
+                    ...remoteConversation,
+                    ...candidate,
+                    id: conversation.id,
+                    messages: mergeById(
+                      candidate.messages,
+                      remoteConversation.messages,
+                    ),
+                  }
+                : candidate,
+            ),
+          );
+          return remoteConversation.id;
+        } catch {
+          return conversation.id;
+        } finally {
+          pendingConversationCreates.current.delete(conversation.id);
+        }
+      })();
+      pendingConversationCreates.current.set(conversation.id, createRequest);
       return conversation;
     },
-    [conversations, setConversations],
+    [conversations, setConversationIdAliases, setConversations],
   );
 
   const sendMessage = useCallback(
@@ -756,6 +1392,7 @@ export function TwitterProvider({ children }: { children: ReactNode }) {
         }),
       };
 
+      dirtyState.current.conversations = true;
       setConversations((previous) =>
         previous.map((conversation) =>
           conversation.id === conversationId
@@ -764,25 +1401,75 @@ export function TwitterProvider({ children }: { children: ReactNode }) {
                 unread: false,
                 messages: [...conversation.messages, message],
               }
-            : conversation,
+          : conversation,
+        ),
+      );
+      syncInBackground(
+        resolveConversationApiId(conversationId).then(
+          async (apiConversationId) => {
+            const remoteMessage = await chirpApi.sendMessage(
+              apiConversationId,
+              normalizedText,
+            );
+            if (!remoteMessage) return;
+            if (remoteMessage.id !== message.id) {
+              setMessageIdAliases((previous) => {
+                const next = {
+                  ...previous,
+                  [message.id]: remoteMessage.id,
+                };
+                messageIdAliasesRef.current = next;
+                return next;
+              });
+            }
+            setConversations((previous) =>
+              previous.map((conversation) =>
+                conversation.id === conversationId
+                  ? {
+                      ...conversation,
+                      messages: conversation.messages.map((candidate) =>
+                        candidate.id === message.id
+                          ? {
+                              ...candidate,
+                              ...remoteMessage,
+                              id: message.id,
+                            }
+                          : candidate,
+                      ),
+                    }
+                : conversation,
+              ),
+            );
+          },
         ),
       );
       return message;
     },
-    [conversations, setConversations],
+    [
+      conversations,
+      resolveConversationApiId,
+      setConversations,
+      setMessageIdAliases,
+    ],
   );
 
   const markConversationRead = useCallback(
     (conversationId: string) => {
+      dirtyState.current.conversations = true;
       setConversations((previous) =>
         previous.map((conversation) =>
           conversation.id === conversationId
             ? { ...conversation, unread: false }
-            : conversation,
+          : conversation,
+        ),
+      );
+      syncInBackground(
+        resolveConversationApiId(conversationId).then((apiConversationId) =>
+          chirpApi.markConversationRead(apiConversationId),
         ),
       );
     },
-    [setConversations],
+    [resolveConversationApiId, setConversations],
   );
 
   const toast = toasts.at(-1) ?? null;
@@ -835,8 +1522,8 @@ export function TwitterProvider({ children }: { children: ReactNode }) {
       startConversation,
       sendMessage,
       markConversationRead,
-      trends,
-      notifications,
+      trends: availableTrends,
+      notifications: availableNotifications,
       composeModal,
       isComposeModalOpen: composeModal.open,
       isComposeOpen: composeModal.open,
@@ -855,6 +1542,8 @@ export function TwitterProvider({ children }: { children: ReactNode }) {
     [
       allTweets,
       authoredTweets,
+      availableNotifications,
+      availableTrends,
       bookmarkedTweetIds,
       clearToast,
       closeComposeModal,
