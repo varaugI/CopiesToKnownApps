@@ -1,95 +1,50 @@
-# StreamFlix - Enterprise Netflix Application Ecosystem
+# Netflix interface copy
 
-A full-stack streaming platform architecture engineered with **React 18**, **Angular 18**, **Node.js Express REST API**, and **Java 21 / Spring Boot 3**.
+This is the canonical Netflix copy in the workspace. The previous implementation is preserved
+unchanged in `../Netflix-ReactVite`.
 
----
+## Stack
 
-## 🌟 Key Features & Ecosystem Components
+- React 18 + TypeScript for the browser client
+- Java 21 + Spring Boot 3 for the catalog API boundary
+- Vite for local client tooling
 
-### 1. ⚛️ React 18 Netflix Client (Vite SPA)
-- **Multi-Profile Selector**: Switch profiles with custom avatars & watchlists ("Gaurav", "Cinema Buff", "Kids Zone", "Sci-Fi Fanatic").
-- **Dynamic Sticky Navbar**: Smooth background gradient transition on scroll, expanding search input bar, notification popovers, profile menu.
-- **Hero Billboard Banner**: Auto-playing video backdrop trailer with mute/unmute audio control, Play, More Info, and Add to My List buttons.
-- **Horizontal Content Carousels**: Smooth horizontal scrolling rows ("Trending Now", "Sci-Fi Blockbusters", "Top 10 Today", "My List") with navigation arrows.
-- **Hover Card Expansion**: Video previews, match scores (e.g. 98% Match), age ratings, 4K badges, and instant action buttons on hover.
-- **Detailed Movie/Show Modal**: Comprehensive show overview, season/episode list with duration & thumbnails, and "More Like This" recommendations grid.
-- **Fullscreen Custom Video Player**: Custom controls with scrub seek bar, 10s skip backward/forward, skip intro button, audio & subtitles selector, playback speed controls (0.5x - 2x).
-- **Client Performance & State**: Dynamic code splitting (`React.lazy` + `Suspense`), component memoization (`React.memo`), structured state management, and HLS integration.
+Netflix has publicly documented React-based JavaScript interfaces and a service estate in which
+Java is the predominant language. This project follows those public runtime choices without
+pretending to reproduce Netflix's private production platform.
 
-### 2. 🅰️ Angular 18 Netflix Client (`/angular-app`)
-- **RxJS Data Services**: Connected to backend API endpoints with typed services.
-- **Standalone Components**: Clean, reactive UI with hero banner, category carousels, movie detail modal, search filter, and video player.
+Public engineering references:
 
-### 3. ⚡ Node.js Express REST API (`/server` - Legacy Prototype)
-- **Prototype Cache Layer**: In-memory cache (Phase 6 target: Redis distributed cache).
-- **Rate Limiting**: Sliding-window rate limiters.
-- **Simulated Video Endpoint**: HTTP Range response header verification (Phase 5 target: MinIO + FFmpeg HLS pipeline).
-- **Node.js Cluster Prototype**: Multi-core worker process fork.
+- [Crafting a high-performance TV user interface using React](https://netflixtechblog.com/crafting-a-high-performance-tv-user-interface-using-react-3350e5a6ad3b)
+- [Prana: A Sidecar for your Netflix PaaS based Applications and Services](https://netflixtechblog.com/prana-a-sidecar-for-your-netflix-paas-based-applications-and-services-258a5790a015)
 
-- **HTTP Compression & Security**: Gzip/Brotli response compression (`compression`) and `helmet` security headers.
+## Run it
 
----
+Frontend:
 
-## 📂 Repository Structure
-
-```
-NetflixCopy/
-├── src/                    # React 18 Client Application
-│   ├── components/         # Navbar, Billboard, MovieCard, ContentRow, MovieModal, VideoPlayer, SearchResults
-│   ├── context/            # AppContext (State Management & Live API Sync)
-│   ├── data/               # Mock data store & fallback media assets
-│   └── index.css           # Netflix dark theme design system
-├── server/                 # High-Scale Node.js Express REST API Server
-│   ├── config/             # Sub-millisecond Memory Cache Layer
-│   ├── data/               # Centralized media database
-│   ├── middleware/         # Sliding-window rate limiters & security
-│   ├── services/           # HTTP Range video chunk streaming service
-│   └── index.js            # Express app with CPU clustering
-├── angular-app/            # Angular 18 Netflix Application
-│   └── src/app/            # AppComponent, RxJS NetflixService
-├── run-all.js              # Unified multi-app process launcher
-└── package.json            # Root configuration & scripts
-```
-
----
-
-## ⚡ Quick Start
-
-### 1. Install Dependencies
 ```bash
 npm install
-cd server && npm install
-cd ../angular-app && npm install --legacy-peer-deps
+npm run dev
 ```
 
-### 2. Run All Ecosystem Services Concurrently
+Spring Boot API (optional because the client includes a fallback catalog):
+
 ```bash
-node run-all.js
+cd backend
+mvn spring-boot:run
 ```
 
-Or launch services individually:
-- **Node.js API Server** (Port 5000): `cd server && npm start`
-- **React Netflix App** (Port 3000): `npm run dev`
-- **Angular Netflix App** (Port 4200): `cd angular-app && npm start`
+The client runs on `http://localhost:3000` and proxies `/api` to the Java service on port `8080`.
 
----
+## Features
 
-## 📡 API Endpoint Specifications
+- Profile selection and switching
+- Responsive browse experience with hero billboard and content rows
+- Search across titles, cast, formats, and genres
+- My List persistence in local storage
+- Top 10 and Continue Watching presentations
+- Hover previews, title details, episodes, and demo playback
+- Keyboard-friendly controls, reduced-motion support, and responsive layouts
 
-| Endpoint | Method | Description |
-| :--- | :--- | :--- |
-| `/api/health` | `GET` | Health check, cluster worker PID, cache stats |
-| `/api/metrics` | `GET` | System metrics, uptime, memory, and cache hit rates |
-| `/api/movies` | `GET` | Catalog titles (supports `?category=`, `?genre=`, `?type=`) |
-| `/api/movies/:id` | `GET` | Single title metadata & recommended titles |
-| `/api/billboard` | `GET` | Featured hero title |
-| `/api/categories` | `GET` | Available catalog categories |
-| `/api/profiles` | `GET` | User profile list |
-| `/api/search?q=...` | `GET` | Instant title/genre/cast search |
-| `/api/stream/:id` | `GET` | HTTP Range chunked video stream (`206 Partial Content`) |
-| `/api/mylist/:profileId` | `GET` / `POST` | Watchlist retrieval and toggle endpoint |
-
----
-
-## 📄 License
-MIT License. Built for demonstration and enterprise architecture reference.
+All catalog names and descriptions in this learning project are fictional. Remote Unsplash images
+are used as replaceable demo artwork.

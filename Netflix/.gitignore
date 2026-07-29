@@ -1,32 +1,10 @@
-# Dependencies
 node_modules/
-
-# Build & Runtime Output
 dist/
-build/
-target/
-.angular/
 .vite/
-
-# Environment files & Secrets
-.env
-.env.local
-.env.development.local
-.env.production.local
-*.pem
-*.key
-
-# Logs
 *.log
-npm-debug.log*
-yarn-debug.log*
-
-# OS & IDE
+*.tsbuildinfo
+.vite.pid
 .DS_Store
-Thumbs.db
+backend/target/
 .idea/
 .vscode/
-
-# Media output and processing scratch directory
-media-output/
-uploads/

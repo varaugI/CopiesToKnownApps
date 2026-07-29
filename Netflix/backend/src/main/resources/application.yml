@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: netflix-copy-catalog
+  threads:
+    virtual:
+      enabled: true
+
+server:
+  port: 8080
+  compression:
+    enabled: true
+    min-response-size: 1KB
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
