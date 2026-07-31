@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
-    "typecheck": "tsc -b --pretty false",
+    "build": "tsc --noEmit -p tsconfig.app.json --pretty false && tsc --noEmit -p tsconfig.node.json --pretty false && vite build",
+    "typecheck": "tsc --noEmit -p tsconfig.app.json --pretty false && tsc --noEmit -p tsconfig.node.json --pretty false",
     "test": "vitest run && node --test server/index.test.mjs",
     "start": "node server/index.mjs"
   },
@@ -23,4 +23,3 @@
     "vitest": "^4.0.18"
   }
 }
-
