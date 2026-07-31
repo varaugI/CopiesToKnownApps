@@ -1,0 +1,15 @@
+com\prime\controller\XRayController.class
+com\prime\domain\SoundtrackTrack.class
+com\prime\domain\MediaContent.class
+com\prime\dto\XRayResponse.class
+com\prime\controller\WatchlistController.class
+com\prime\domain\CastMember.class
+com\prime\repository\SoundtrackRepository.class
+com\prime\domain\WatchlistItem.class
+com\prime\config\DataSeeder.class
+com\prime\repository\MediaRepository.class
+com\prime\repository\WatchlistRepository.class
+com\prime\controller\MediaController.class
+com\prime\controller\HealthController.class
+com\prime\PrimeBackendApplication.class
+com\prime\repository\CastRepository.class

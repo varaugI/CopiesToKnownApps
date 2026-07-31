@@ -1042,10 +1042,6 @@ class YtApp extends PolymerElement {
     return item === activeCategory ? 'active' : '';
   }
 
-  _toggleProfile() {
-    this.profileOpen = !this.profileOpen;
-  }
-
   _themeIcon(lightTheme) {
     return lightTheme ? 'sun' : 'moon';
   }

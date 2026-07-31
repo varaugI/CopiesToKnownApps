@@ -1,4 +1,6 @@
 import './styles.css';
+import '@polymer/polymer/lib/elements/dom-if.js';
+import '@polymer/polymer/lib/elements/dom-repeat.js';
 import './components/yt-icon.js';
 import './components/yt-sidebar.js';
 import './components/yt-video-card.js';
