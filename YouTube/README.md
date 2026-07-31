@@ -1,16 +1,51 @@
-# React + Vite
+# YouTube interface copy
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+This is the canonical YouTube copy in the workspace. The former React/Vite + Spring Boot
+implementation is preserved unchanged in `../YouTube-ReactVite`.
 
-Currently, two official plugins are available:
+## Stack decision
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Polymer 3 and native Custom Elements for the client component model
+- JavaScript modules and lazy/restamped views
+- Python standard-library HTTP API for the local feed boundary
+- Vite as local build tooling only
 
-## React Compiler
+YouTube publicly documented that its redesigned consumer site was built on Polymer. Its later
+performance case study describes a modular client with more than fifty components, a component to
+JavaScript-module map, batched loading, and component state-management work. This copy follows that
+publicly documented browser architecture.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+The small Python API is intentionally local and dependency-free. It is not a claim that YouTube's
+private, current backend is a single-language Python application.
 
-## Expanding the Oxlint configuration
+First-party references:
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+- [YouTube: A sneak peek at YouTube's new look and feel](https://blog.youtube/news-and-events/a-sneak-peek-at-youtubes-new-look-and/)
+- [web.dev: Building a better web — A faster YouTube](https://web.dev/case-studies/better-youtube-web-part1)
+
+## Run
+
+Client:
+
+```bash
+npm install
+npm run dev
+```
+
+Optional feed API:
+
+```bash
+python api/server.py
+```
+
+The client runs at `http://localhost:3000` and proxies `/api` to the Python service on port `8081`.
+If the API is not running, the same feed is imported as a bundled fallback.
+
+## Included behavior
+
+- Responsive desktop rail, compact rail, and mobile bottom navigation
+- Topic filters, search, subscriptions, and Shorts views
+- Video watch page with playback, channel actions, expandable description, comments, and recommendations
+- Upload and Shorts overlays
+- Account menu and dark/light appearance toggle
+- Fictional catalog and channel data with replaceable Unsplash artwork
