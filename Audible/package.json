@@ -1,0 +1,26 @@
+{
+  "name": "audible-listening-copy",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit -p tsconfig.json --pretty false && vite build",
+    "typecheck": "tsc --noEmit -p tsconfig.json --pretty false",
+    "test": "vitest run && node --test server/index.test.mjs",
+    "start": "node server/index.mjs"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^6.0.3",
+    "vite": "^8.1.5",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  }
+}
+
